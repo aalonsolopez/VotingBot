@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PredictionStatus {
+  OPEN
+  CLOSED
+  RESOLVED
+}
+
+model Prediction {
+  id         String           @id @default(cuid())
+  guildId    String
+  channelId  String
+  messageId  String?          // se rellena tras enviar el embed
+  title      String
+  game       String?
+  lockTime   DateTime?
+  status     PredictionStatus @default(OPEN)
+  createdBy  String
+  createdAt  DateTime         @default(now())
+  options    PredictionOption[]
+  votes      Vote[]
+  result     PredictionResult?
+
+  @@index([guildId, status])
+}
+
+model PredictionOption {
+  id           String      @id @default(cuid())
+  predictionId String
+  label        String
+  prediction   Prediction  @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  votes        Vote[]
+
+  @@unique([predictionId, label])
+}
+
+model Vote {
+  id           String           @id @default(cuid())
+  predictionId String
+  optionId     String
+  userId       String
+  createdAt    DateTime         @default(now())
+  prediction   Prediction       @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  option       PredictionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([predictionId, userId]) // 1 voto por usuario y predicción (upsert)
+  @@index([predictionId])
+}
+
+model PredictionResult {
+  predictionId    String   @id
+  winnerOptionId  String
+  resolvedBy      String
+  resolvedAt      DateTime @default(now())
+  prediction      Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+}
+
+model UserPoints {
+  id       String  @id @default(cuid())
+  guildId  String
+  userId   String
+  total    Int     @default(0)
+
+  @@unique([guildId, userId])
+  @@index([guildId, total])
+}
+
+model PointsLedger {
+  id           String   @id @default(cuid())
+  guildId      String
+  userId       String
+  predictionId String
+  delta        Int
+  reason       String
+  createdAt    DateTime @default(now())
+}
