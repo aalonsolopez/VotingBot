@@ -4,6 +4,12 @@
   "description": "Bot de votaciones para el discord de KOI Noboris",
   "main": "index.ts",
   "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "deploy:commands": "tsx src/discord/deploy-commands.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
