@@ -9,6 +9,9 @@
     "deploy:commands": "tsx src/discord/deploy-commands.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:init": "prisma migrate dev --name init",
+    "prisma:push": "prisma db push",
+    "prisma:create": "npm run prisma:migrate:init",
     "prisma:studio": "prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -38,5 +41,8 @@
     "dotenv": "^17.2.3",
     "pg": "^8.16.3",
     "zod": "^4.2.1"
+  },
+  "overrides": {
+    "@prisma/dev": "0.19.1"
   }
 }

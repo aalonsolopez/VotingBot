@@ -144,7 +144,7 @@ export async function predResolve(i: ChatInputCommandInteraction) {
       if (channel && channel.isTextBased()) {
         const msg = await channel.messages.fetch(pred.messageId);
         const newEmbed = EmbedBuilder.from(msg.embeds[0] ?? new EmbedBuilder())
-          .setFooter({ text: `RESOLVED • Winner: ${winnerOpt.label} • ID: ${pred.id}` });
+          .setFooter({ text: `PREDICCIÓN CERRADA • El ganador ha sido: ${winnerOpt.label}` });
 
         await msg.edit({ embeds: [newEmbed] });
       }

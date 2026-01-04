@@ -8,8 +8,8 @@ const commands = [
     .addSubcommand(s =>
       s.setName("create").setDescription("Crear predicción")
         .addStringOption(o => o.setName("title").setDescription("Título").setRequired(true))
-        .addStringOption(o => o.setName("game").setDescription("Juego").setRequired(false))
         .addStringOption(o => o.setName("options").setDescription("Opciones CSV: A,B,C").setRequired(true))
+        .addStringOption(o => o.setName("game").setDescription("Juego").setRequired(false))
     )
     .addSubcommand(s =>
       s.setName("stats").setDescription("Ver stats")
