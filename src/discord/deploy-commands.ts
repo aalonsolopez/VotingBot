@@ -9,6 +9,12 @@ const commands = [
       s.setName("create").setDescription("Crear predicción")
         .addStringOption(o => o.setName("title").setDescription("Título").setRequired(true))
         .addStringOption(o => o.setName("options").setDescription("Opciones CSV: A,B,C").setRequired(true))
+        .addStringOption(o =>
+          o
+            .setName("lock_at")
+            .setDescription('Fecha/hora de cierre (ISO 8601 o "DD-MM-YYYY HH:MM")')
+            .setRequired(true)
+        )
         .addStringOption(o => o.setName("game").setDescription("Juego").setRequired(false))
     )
     .addSubcommand(s =>
@@ -22,6 +28,9 @@ const commands = [
     )
     .addSubcommand(s =>
       s.setName("leaderboard").setDescription("Tabla de puntos")
+        .addStringOption(o => o.setName("user").setDescription("Usuario a consultar").setRequired(false))
+        .addBooleanOption(o => o.setName("total").setDescription("¿Quieres ver el total?").setRequired(false))
+        .addIntegerOption(o => o.setName("top").setDescription("Filtrar numero de participantes en el top").setRequired(false))
     )
     .toJSON(),
 ];

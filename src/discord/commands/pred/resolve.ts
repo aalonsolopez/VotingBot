@@ -1,20 +1,13 @@
 import type { ChatInputCommandInteraction } from "discord.js";
-import { EmbedBuilder, PermissionsBitField } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { prisma } from "#db/prisma.js";
-
-function isAdmin(i: ChatInputCommandInteraction): boolean {
-  // Puedes ajustar esto a roles concretos si quieres.
-  const member = i.member;
-  // member puede ser APIInteractionGuildMember; discord.js expone permissions en guild contexts.
-  // @ts-expect-error - typing de i.member varía
-  const perms = member?.permissions ? new PermissionsBitField(member.permissions) : null;
-  return !!perms?.has(PermissionsBitField.Flags.ManageGuild) || !!perms?.has(PermissionsBitField.Flags.Administrator);
-}
+import { env } from "#config/env.js";
+import { isAdminOrMod } from "../permissions.js";
 
 export async function predResolve(i: ChatInputCommandInteraction) {
   if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", ephemeral: true });
 
-  if (!isAdmin(i)) {
+  if (!isAdminOrMod(i)) {
     return i.reply({ content: "❌ No tienes permisos para resolver predicciones.", ephemeral: true });
   }
 
@@ -129,12 +122,46 @@ export async function predResolve(i: ChatInputCommandInteraction) {
         `**${pred.title}**`,
         `🏁 Ganador: **${winnerOpt.label}**`,
         `🗳️ Votos: **${result.totalVotes}**`,
-        `✅ Aciertos: **${result.correctCount}** (+1 punto)`,
-        `🆔 ID: \`${pred.id}\``,
+        `✅ Aciertos: **${result.correctCount}** (+1 punto)`
       ].join("\n")
-    );
+    )
+    .setColor("#57F287");
 
   await i.editReply({ embeds: [embed] });
+
+  // Anuncio público en el canal de la predicción (para que lo vea todo el mundo).
+  // Mantiene la respuesta del comando como efímera.
+  try {
+    const jumpLink = pred.messageId
+      ? `https://discord.com/channels/${pred.guildId}/${pred.channelId}/${pred.messageId}`
+      : null;
+
+    const publicEmbed = new EmbedBuilder()
+      .setTitle("✅ Predicción resuelta")
+      .setDescription(
+        [
+          `**${pred.title}**`,
+          `🏁 Ganador: **${winnerOpt.label}**`,
+          jumpLink ? `🔗 Mensaje: ${jumpLink}` : null,
+        ].filter(Boolean).join("\n")
+      )
+      .setColor("#57F287");
+
+    const announcementsChannelId = env.ANNOUNCEMENTS_CHANNEL_ID ?? "1400445241533927424";
+
+    // Primero intenta el canal de anuncios; si falla, cae al canal de la predicción.
+    const preferred = await i.client.channels.fetch(announcementsChannelId).catch(() => null);
+    if (preferred && preferred.isTextBased() && "send" in preferred) {
+      await preferred.send({ embeds: [publicEmbed] });
+    } else {
+      const fallback = await i.client.channels.fetch(pred.channelId).catch(() => null);
+      if (fallback && fallback.isTextBased() && "send" in fallback) {
+        await fallback.send({ embeds: [publicEmbed] });
+      }
+    }
+  } catch {
+    // ignore
+  }
 
   // (Opcional) Editar el mensaje original del embed para reflejar el resultado.
   // Si no hay permisos o el mensaje no existe, no pasa nada.
@@ -144,7 +171,8 @@ export async function predResolve(i: ChatInputCommandInteraction) {
       if (channel && channel.isTextBased()) {
         const msg = await channel.messages.fetch(pred.messageId);
         const newEmbed = EmbedBuilder.from(msg.embeds[0] ?? new EmbedBuilder())
-          .setFooter({ text: `PREDICCIÓN CERRADA • El ganador ha sido: ${winnerOpt.label}` });
+          .setFooter({ text: `PREDICCIÓN CERRADA • El ganador ha sido: ${winnerOpt.label}` })
+          .setColor("#cab0ec");
 
         await msg.edit({ embeds: [newEmbed] });
       }

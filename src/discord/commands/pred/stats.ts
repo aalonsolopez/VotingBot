@@ -40,9 +40,9 @@ export async function predStats(i: ChatInputCommandInteraction) {
         `🗳️ **Votos totales:** ${totalVotes}`,
         pred.game ? `🎮 **Juego:** ${pred.game}` : null,
         pred.lockTime ? `⏰ **Lock:** <t:${Math.floor(pred.lockTime.getTime() / 1000)}:F>` : null,
-        `🆔 **ID:** \`${pred.id}\``,
       ].filter(Boolean).join("\n")
-    );
+    )
+    .setColor("#cab0ec");
 
   for (const opt of pred.options) {
     const c = counts.get(opt.id) ?? 0;

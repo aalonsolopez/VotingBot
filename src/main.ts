@@ -2,11 +2,13 @@ import { env } from "./config/env.js";
 import { createDiscordClient } from "./discord/client.js";
 import { handleCommand } from "./discord/commands/index.js";
 import { handleInteraction } from "./discord/interactions/index.js";
+import { startPredictionAutoClose } from "./discord/pred/autoClose.js";
 
 const client = createDiscordClient();
 
 client.on("ready", () => {
   console.log(`✅ Logged in as ${client.user?.tag}`);
+  startPredictionAutoClose(client);
 });
 
 client.on("interactionCreate", async (i) => {

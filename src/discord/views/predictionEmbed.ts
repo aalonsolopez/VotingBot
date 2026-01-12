@@ -7,11 +7,17 @@ export function buildPredictionMessage(args: {
   title: string;
   game?: string | null;
   options: { id: string; label: string }[];
+  showIds?: boolean;
 }) {
   const embed = new EmbedBuilder()
     .setTitle(args.title)
     .setDescription(args.game ? `🎮 ${args.game}` : null)
-    .setFooter({ text: `ID: ${args.predictionId}` });
+    .setColor("#cab0ec");
+
+  if (args.showIds) {
+    embed.setFooter({ text: `ID: ${args.predictionId}` })
+    .setColor("#cab0ec");
+  }
 
   const row = new ActionRowBuilder<ButtonBuilder>();
   for (const opt of args.options.slice(0, 5)) {

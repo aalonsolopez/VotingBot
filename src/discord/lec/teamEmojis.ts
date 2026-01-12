@@ -17,13 +17,15 @@ const TEAM_ALIASES: Record<string, string> = {
   "G2": "G2",
   "FNC": "FNC",
   "MKOI": "MKOI",
-  "SHFT": "BDS",
+  "SHFT": "SHFT",
   "SK": "SK",
   "VIT": "VIT",
   "GX": "GX",
   "KC": "KC",
   "TH": "TH",
   "NAVI": "NAVI",
+  "LR": "LR",
+  "KCB": "KCB",
 
   // Nombres completos / variantes
   "G2 ESPORTS": "G2",
@@ -36,6 +38,8 @@ const TEAM_ALIASES: Record<string, string> = {
   "KARMINE CORP": "KC",
   "TEAM HERETICS": "TH",
   "NATUS VINCERE": "NAVI",
+  "LOS RATONES": "LR",
+  "KARMINE CORP BLUE": "KCB",
 };
 
 let cachedEmojiMap: Record<string, string> | null = null;
