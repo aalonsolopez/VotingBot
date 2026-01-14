@@ -1,7 +1,7 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { prisma } from "#db/prisma.js";
-import { log } from "#log.js";
+import { log } from "#src/log.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
