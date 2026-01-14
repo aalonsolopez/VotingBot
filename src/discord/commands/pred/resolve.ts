@@ -14,7 +14,7 @@ export async function predResolve(i: ChatInputCommandInteraction) {
   const predictionId = i.options.getString("id", true);
   const winnerOptionId = i.options.getString("winner", true);
 
-  await i.deferReply({ ephemeral: true });
+  // Ya fue deferid en main.ts
 
   // Validar que existe y que la opción ganadora pertenece a la predicción
   const pred = await prisma.prediction.findUnique({

@@ -7,7 +7,7 @@ export async function predLeaderboard(i: ChatInputCommandInteraction) {
 
   let topNumber: number | null = 20;
 
-  await i.deferReply({ ephemeral: false }); // leaderboard suele ser útil público
+  // Ya fue deferid en main.ts
   let lines: string[] = [];
 
   if (i.options.getUser("user")) {

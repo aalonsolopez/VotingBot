@@ -7,7 +7,7 @@ export async function predStats(i: ChatInputCommandInteraction) {
 
   const predictionId = i.options.getString("id", true);
 
-  await i.deferReply({ ephemeral: true });
+  // Ya fue deferid en main.ts
 
   const pred = await prisma.prediction.findUnique({
     where: { id: predictionId },

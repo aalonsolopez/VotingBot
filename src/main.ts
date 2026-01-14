@@ -28,6 +28,29 @@ process.on("uncaughtException", (err) => {
 
 client.on("interactionCreate", async (i) => {
   try {
+    // CRÍTICO: Defer INMEDIATAMENTE antes de cualquier procesamiento.
+    // Esto previene 10062 (Unknown interaction) en operaciones que tarden >3s.
+    if (i.isRepliable() && !i.deferred && !i.replied) {
+      try {
+        // Defer con ephemeral=true por defecto (los comandos específicos pueden rechazar después)
+        await i.deferReply({ flags: 64 });
+      } catch (e: any) {
+        // Si falla el defer, la interacción expiró. Log y termina.
+        if (e?.code === 10062) {
+          log.warn("Interacción expirada antes de poder hacer defer", {
+            type: i.type,
+            isCommand: i.isChatInputCommand?.(),
+            isButton: i.isButton?.(),
+            ageMs: Date.now() - i.createdTimestamp,
+            userId: i.user?.id,
+          });
+          return;
+        }
+        throw e;
+      }
+    }
+
+    // Ahora es seguro procesar la interacción (tenemos 15 min para responder)
     if (i.isChatInputCommand()) return await handleCommand(i);
     if (i.isButton()) return await handleInteraction(i);
   } catch (e) {
@@ -35,13 +58,12 @@ client.on("interactionCreate", async (i) => {
     if (i.isRepliable()) {
       const msg = "❌ Error interno.";
       try {
-        // 64 = MessageFlags.Ephemeral
+        // Ahora siempre está deferred, así que usar editReply
         if (i.deferred) await i.editReply({ content: msg });
-        else if (!i.replied) await i.reply({ content: msg, flags: 64 });
         else await i.followUp({ content: msg, flags: 64 });
       } catch (err) {
-        // Si la interacción ya expiró (10062) o ya fue reconocida (40060), no hay nada que hacer.
-        log.error("Además, no se pudo enviar el mensaje de error de la interacción.", err);
+        // Si no se puede enviar el error, solo log.
+        log.error("No se pudo enviar el mensaje de error de la interacción.", err);
       }
     }
   }

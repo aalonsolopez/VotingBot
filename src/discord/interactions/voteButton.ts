@@ -8,18 +8,11 @@ export async function voteButton(i: ButtonInteraction): Promise<boolean> {
   if (!parsed) return false;
 
   if (!i.inGuild()) {
-    await i.reply({ content: "Solo en servidores.", ephemeral: true });
+    await i.editReply({ content: "Solo en servidores." });
     return true;
   }
 
-  // Diferir la respuesta INMEDIATAMENTE para evitar timeout de 3s
-  try {
-    await i.deferReply({ ephemeral: true });
-  } catch (err) {
-    // Si falla el defer, probablemente ya expiró. Log pero continúa.
-    console.error("deferReply falló:", err);
-    return false;
-  }
+  // Ya fue deferid en main.ts
 
   const pred = await prisma.prediction.findUnique({
     where: { id: parsed.predictionId },
