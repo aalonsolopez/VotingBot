@@ -12,13 +12,22 @@ export async function voteButton(i: ButtonInteraction): Promise<boolean> {
     return true;
   }
 
+  // Diferir la respuesta INMEDIATAMENTE para evitar timeout de 3s
+  try {
+    await i.deferReply({ ephemeral: true });
+  } catch (err) {
+    // Si falla el defer, probablemente ya expiró. Log pero continúa.
+    console.error("deferReply falló:", err);
+    return false;
+  }
+
   const pred = await prisma.prediction.findUnique({
     where: { id: parsed.predictionId },
     select: { id: true, status: true, lockTime: true, channelId: true, messageId: true, title: true },
   });
 
   if (!pred || pred.status !== "OPEN") {
-    await i.reply({ content: "Esta predicción ya no está abierta.", ephemeral: true });
+    await i.editReply({ content: "Esta predicción ya no está abierta." });
     return true;
   }
 
@@ -42,7 +51,7 @@ export async function voteButton(i: ButtonInteraction): Promise<boolean> {
       });
     }
 
-    await i.reply({ content: "⏰ Votaciones cerradas para esta predicción.", ephemeral: true });
+    await i.editReply({ content: "⏰ Votaciones cerradas para esta predicción." });
     return true;
   }
 
@@ -56,6 +65,6 @@ export async function voteButton(i: ButtonInteraction): Promise<boolean> {
     update: { optionId: parsed.optionId },
   });
 
-  await i.reply({ content: "✅ Voto registrado.", ephemeral: true });
+  await i.editReply({ content: "✅ Voto registrado." });
   return true;
 }

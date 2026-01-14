@@ -36,8 +36,9 @@ client.on("interactionCreate", async (i) => {
       const msg = "❌ Error interno.";
       try {
         // 64 = MessageFlags.Ephemeral
-        if (i.deferred || i.replied) await i.followUp({ content: msg, flags: 64 });
-        else await i.reply({ content: msg, flags: 64 });
+        if (i.deferred) await i.editReply({ content: msg });
+        else if (!i.replied) await i.reply({ content: msg, flags: 64 });
+        else await i.followUp({ content: msg, flags: 64 });
       } catch (err) {
         // Si la interacción ya expiró (10062) o ya fue reconocida (40060), no hay nada que hacer.
         log.error("Además, no se pudo enviar el mensaje de error de la interacción.", err);

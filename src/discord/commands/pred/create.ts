@@ -56,28 +56,25 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     return i.reply({ content: "❌ No tienes permisos para crear predicciones.", flags: 64 });
   }
 
-  // Esta operación hace DB + envío de mensaje, puede tardar >3s en servidores lentos.
-  // Defer lo antes posible para evitar 10062 (Unknown interaction).
-  if (!i.deferred && !i.replied) {
-    try {
-      await i.deferReply({ flags: 64 });
-    } catch (e: any) {
-      // 10062: expirada/invalidada; 40060: ya reconocida.
-      if (e?.code === 10062) {
-        log.warn("pred/create: deferReply falló con 10062 (interacción expirada)", {
-          ageMs: Date.now() - i.createdTimestamp,
-          guildId: i.guildId,
-          channelId: i.channelId,
-          userId: i.user?.id,
-        });
-        return;
-      }
-      if (e?.code === 40060) {
-        log.warn("pred/create: deferReply falló con 40060 (ya reconocida)");
-      } else {
-        log.error("pred/create: error inesperado en deferReply", e);
-        return;
-      }
+  // Defer lo antes posible para evitar 10062 (Unknown interaction) en operaciones que tardan >3s.
+  try {
+    await i.deferReply({ flags: 64 });
+  } catch (e: any) {
+    // 10062: expirada/invalidada; 40060: ya reconocida.
+    if (e?.code === 10062) {
+      log.warn("pred/create: deferReply falló con 10062 (interacción expirada)", {
+        ageMs: Date.now() - i.createdTimestamp,
+        guildId: i.guildId,
+        channelId: i.channelId,
+        userId: i.user?.id,
+      });
+      return;
+    }
+    if (e?.code === 40060) {
+      log.warn("pred/create: deferReply falló con 40060 (ya reconocida)");
+    } else {
+      log.error("pred/create: error inesperado en deferReply", e);
+      return;
     }
   }
 

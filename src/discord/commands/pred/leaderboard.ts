@@ -17,7 +17,7 @@ export async function predLeaderboard(i: ChatInputCommandInteraction) {
     });
 
     if (!entry) {
-      return i.reply({ content: `❌ <@${user.id}> no tiene puntuaciones en este servidor.`, ephemeral: true });
+      return i.editReply({ content: `❌ <@${user.id}> no tiene puntuaciones en este servidor.` });
     }
 
     const ordered = await prisma.userPoints.findMany({
@@ -43,7 +43,7 @@ export async function predLeaderboard(i: ChatInputCommandInteraction) {
     });
 
     if (rows.length === 0) {
-      return i.reply({ content: "Todavía no hay puntuaciones en este servidor.", ephemeral: true });
+      return i.editReply({ content: "Todavía no hay puntuaciones en este servidor." });
     }
     
     lines = rows.map((r, idx) => `${idx + 1}. <@${r.userId}> — **${r.total}** pts`);
@@ -57,7 +57,7 @@ export async function predLeaderboard(i: ChatInputCommandInteraction) {
       take: topN,
     });
     if (rows.length === 0) {
-      return i.reply({ content: "Todavía no hay puntuaciones en este servidor.", ephemeral: true });
+      return i.editReply({ content: "Todavía no hay puntuaciones en este servidor." });
     }
 
     lines = rows.map((r, idx) => `${idx + 1}. <@${r.userId}> — **${r.total}** pts`);
