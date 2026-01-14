@@ -3,6 +3,7 @@ import { env } from "#config/env.js";
 import { prisma } from "../../../db/prisma.js";
 import { buildPredictionMessage } from "../../views/predictionEmbed.js";
 import { isAdminOrMod } from "../permissions.js";
+import { log } from "../../../log.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
@@ -62,7 +63,21 @@ export async function predCreate(i: ChatInputCommandInteraction) {
       await i.deferReply({ flags: 64 });
     } catch (e: any) {
       // 10062: expirada/invalidada; 40060: ya reconocida.
-      if (e?.code === 10062) return;
+      if (e?.code === 10062) {
+        log.warn("pred/create: deferReply falló con 10062 (interacción expirada)", {
+          ageMs: Date.now() - i.createdTimestamp,
+          guildId: i.guildId,
+          channelId: i.channelId,
+          userId: i.user?.id,
+        });
+        return;
+      }
+      if (e?.code === 40060) {
+        log.warn("pred/create: deferReply falló con 40060 (ya reconocida)");
+      } else {
+        log.error("pred/create: error inesperado en deferReply", e);
+        return;
+      }
     }
   }
 
@@ -118,7 +133,16 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
   ].join("\n");
 
-  await respond(i, `✅ Predicción creada.\n\n${idsLines}`);
+  try {
+    await respond(i, `✅ Predicción creada.\n\n${idsLines}`);
+  } catch (e: any) {
+    if (e?.code === 10062) {
+      log.warn("pred/create: respuesta falló con 10062", { ageMs: Date.now() - i.createdTimestamp });
+      return;
+    }
+    log.error("pred/create: fallo respondiendo a la interacción", e);
+    throw e;
+  }
   const msg = await i.channel!.send(payload);
 
   await prisma.prediction.update({
