@@ -74,6 +74,10 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     return i.reply({ content: "Pon al menos 2 opciones (separadas por coma).", ephemeral: true });
   }
 
+  // La creación implica DB + envío de mensaje, puede tardar >3s.
+  // Defer para evitar el 10062 (Unknown interaction) al responder tarde.
+  await i.deferReply({ ephemeral: true });
+
   const pred = await prisma.prediction.create({
     data: {
       guildId: i.guildId!,
@@ -94,17 +98,6 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     options: pred.options.map(o => ({ id: o.id, label: o.label })),
   });
 
-  const idsLines = [
-    `🆔 Prediction ID: \`${pred.id}\``,
-    "", 
-    "Opciones:",
-    ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
-  ].join("\n");
-
-  await i.reply({
-    content: `✅ Predicción creada.\n\n${idsLines}`,
-    ephemeral: true,
-  });
   const msg = await i.channel!.send(payload);
 
   await prisma.prediction.update({
@@ -112,9 +105,24 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     data: { messageId: msg.id },
   });
 
+  const jumpLink = i.guildId
+    ? `https://discord.com/channels/${i.guildId}/${i.channelId}/${msg.id}`
+    : null;
+
+  const idsLines = [
+    `🆔 Prediction ID: \`${pred.id}\``,
+    jumpLink ? `Mensaje: ${jumpLink}` : null,
+    "",
+    "Opciones:",
+    ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
+  ].filter(Boolean).join("\n");
+
+  await i.editReply({
+    content: `✅ Predicción creada.\n\n${idsLines}`,
+  });
+
   // Publica los IDs en un canal dedicado (si existe y el bot tiene permisos).
   const idsChannelId = env.PRED_IDS_CHANNEL_ID ?? "1460324481661927617";
-  const jumpLink = i.guildId ? `https://discord.com/channels/${i.guildId}/${i.channelId}/${msg.id}` : null;
   const lockInfo = pred.lockTime ? `<t:${Math.floor(pred.lockTime.getTime() / 1000)}:F>` : "(sin cierre automático)";
 
   const logText = [
