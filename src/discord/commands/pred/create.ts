@@ -4,6 +4,13 @@ import { prisma } from "../../../db/prisma.js";
 import { buildPredictionMessage } from "../../views/predictionEmbed.js";
 import { isAdminOrMod } from "../permissions.js";
 
+async function respond(i: ChatInputCommandInteraction, content: string) {
+  // 64 = MessageFlags.Ephemeral
+  if (i.deferred) return i.editReply({ content });
+  if (i.replied) return i.followUp({ content, flags: 64 });
+  return i.reply({ content, flags: 64 });
+}
+
 function parseLockAt(raw: string): Date | null {
   const s = raw.trim();
   if (!s) return null;
@@ -42,10 +49,21 @@ function parseLockAt(raw: string): Date | null {
 }
 
 export async function predCreate(i: ChatInputCommandInteraction) {
-  if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", ephemeral: true });
+  if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", flags: 64 });
 
   if (!isAdminOrMod(i)) {
-    return i.reply({ content: "❌ No tienes permisos para crear predicciones.", ephemeral: true });
+    return i.reply({ content: "❌ No tienes permisos para crear predicciones.", flags: 64 });
+  }
+
+  // Esta operación hace DB + envío de mensaje, puede tardar >3s en servidores lentos.
+  // Defer lo antes posible para evitar 10062 (Unknown interaction).
+  if (!i.deferred && !i.replied) {
+    try {
+      await i.deferReply({ flags: 64 });
+    } catch (e: any) {
+      // 10062: expirada/invalidada; 40060: ya reconocida.
+      if (e?.code === 10062) return;
+    }
   }
 
   const title = i.options.getString("title", true);
@@ -57,21 +75,20 @@ export async function predCreate(i: ChatInputCommandInteraction) {
   let lockTime: Date | null = null;
   lockTime = parseLockAt(lockAtRaw);
   if (!lockTime) {
-    return i.reply({
-      content:
-        "❌ `lock_at` inválido. Formatos soportados:\n" +
+    return respond(
+      i,
+      "❌ `lock_at` inválido. Formatos soportados:\n" +
         "- ISO 8601 (recomendado): 2026-01-12T20:00:00+01:00\n" +
-        "- DD-MM-YYYY HH:MM (hora local del servidor): 12-01-2026 20:00",
-      ephemeral: true,
-    });
+        "- DD-MM-YYYY HH:MM (hora local del servidor): 12-01-2026 20:00"
+    );
   }
 
   if (lockTime && lockTime.getTime() <= Date.now()) {
-    return i.reply({ content: "❌ La fecha de cierre debe ser futura.", ephemeral: true });
+    return respond(i, "❌ La fecha de cierre debe ser futura.");
   }
 
   if (options.length < 2) {
-    return i.reply({ content: "Pon al menos 2 opciones (separadas por coma).", ephemeral: true });
+    return respond(i, "Pon al menos 2 opciones (separadas por coma)." );
   }
 
   const pred = await prisma.prediction.create({
@@ -101,10 +118,7 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
   ].join("\n");
 
-  await i.reply({
-    content: `✅ Predicción creada.\n\n${idsLines}`,
-    ephemeral: true,
-  });
+  await respond(i, `✅ Predicción creada.\n\n${idsLines}`);
   const msg = await i.channel!.send(payload);
 
   await prisma.prediction.update({
