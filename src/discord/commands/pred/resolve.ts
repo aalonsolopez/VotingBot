@@ -4,17 +4,25 @@ import { prisma } from "#db/prisma.js";
 import { env } from "#config/env.js";
 import { isAdminOrMod } from "../permissions.js";
 
+async function respond(i: ChatInputCommandInteraction, content: string) {
+  // 64 = MessageFlags.Ephemeral
+  if (i.deferred) return i.editReply({ content });
+  if (i.replied) return i.followUp({ content, flags: 64 });
+  return i.reply({ content, flags: 64 });
+}
+
 export async function predResolve(i: ChatInputCommandInteraction) {
-  if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", ephemeral: true });
+  // Nota: en main.ts ya haces deferReply(ephemeral) para comandos.
+  // Aquí SIEMPRE usa respond()/editReply para evitar 40060.
+
+  if (!i.inGuild()) return respond(i, "Solo en servidores.");
 
   if (!isAdminOrMod(i)) {
-    return i.reply({ content: "❌ No tienes permisos para resolver predicciones.", ephemeral: true });
+    return respond(i, "❌ No tienes permisos para resolver predicciones.");
   }
 
   const predictionId = i.options.getString("id", true);
   const winnerOptionId = i.options.getString("winner", true);
-
-  // Ya fue deferid en main.ts
 
   // Validar que existe y que la opción ganadora pertenece a la predicción
   const pred = await prisma.prediction.findUnique({
@@ -22,99 +30,102 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     include: { options: true },
   });
 
-  if (!pred) return i.editReply("❌ No existe esa predicción.");
+  if (!pred) return respond(i, "❌ No existe esa predicción.");
 
-  const winnerOpt = pred.options.find(o => o.id === winnerOptionId);
+  const winnerOpt = pred.options.find((o) => o.id === winnerOptionId);
   if (!winnerOpt) {
-    return i.editReply("❌ La opción ganadora no pertenece a esa predicción (Option ID inválido).");
+    return respond(i, "❌ La opción ganadora no pertenece a esa predicción (Option ID inválido).");
   }
 
-  // Evitar doble resolución
+  // Evitar doble resolución (rápido)
   if (pred.status === "RESOLVED") {
-    return i.editReply("⚠️ Esa predicción ya estaba resuelta.");
+    return respond(i, "⚠️ Esa predicción ya estaba resuelta.");
   }
 
   // Regla de puntos (MVP): +1 por acierto, 0 por fallo.
-  // Si luego quieres stake/bonus, aquí es donde evoluciona.
-  const result = await prisma.$transaction(async (tx) => {
-    const existingResult = await tx.predictionResult.findUnique({
-      where: { predictionId: pred.id },
-    });
-    if (existingResult) {
-      throw new Error("ALREADY_RESOLVED");
-    }
+  const result = await prisma
+    .$transaction(async (tx) => {
+      // Evitar doble resolución a nivel transaccional
+      const existingResult = await tx.predictionResult.findUnique({
+        where: { predictionId: pred.id },
+      });
+      if (existingResult) {
+        throw new Error("ALREADY_RESOLVED");
+      }
 
-    const votes = await tx.vote.findMany({
-      where: { predictionId: pred.id },
-      select: { userId: true, optionId: true },
-    });
-
-    const totalVotes = votes.length;
-    const correctUserIds = votes.filter(v => v.optionId === winnerOptionId).map(v => v.userId);
-
-    // Marca resuelta + guarda resultado
-    await tx.prediction.update({
-      where: { id: pred.id },
-      data: { status: "RESOLVED" },
-    });
-
-    await tx.predictionResult.create({
-      data: {
-        predictionId: pred.id,
-        winnerOptionId: winnerOptionId,
-        resolvedBy: i.user.id,
-      },
-    });
-
-    // Ledger + puntos (eficiente: updateMany + createMany)
-    if (correctUserIds.length > 0) {
-      const existing = await tx.userPoints.findMany({
-        where: { guildId: pred.guildId, userId: { in: correctUserIds } },
-        select: { userId: true },
+      const votes = await tx.vote.findMany({
+        where: { predictionId: pred.id },
+        select: { userId: true, optionId: true },
       });
 
-      const existingSet = new Set(existing.map(e => e.userId));
-      const toCreate = correctUserIds.filter(uid => !existingSet.has(uid));
+      const totalVotes = votes.length;
+      const correctUserIds = votes.filter((v) => v.optionId === winnerOptionId).map((v) => v.userId);
 
-      // Incrementa 1 a los existentes
-      await tx.userPoints.updateMany({
-        where: { guildId: pred.guildId, userId: { in: correctUserIds } },
-        data: { total: { increment: 1 } },
+      // Marca resuelta + guarda resultado
+      await tx.prediction.update({
+        where: { id: pred.id },
+        data: { status: "RESOLVED" },
       });
 
-      // Crea los que no existían
-      if (toCreate.length > 0) {
-        await tx.userPoints.createMany({
-          data: toCreate.map(uid => ({ guildId: pred.guildId, userId: uid, total: 1 })),
-          skipDuplicates: true,
+      await tx.predictionResult.create({
+        data: {
+          predictionId: pred.id,
+          winnerOptionId,
+          resolvedBy: i.user.id,
+        },
+      });
+
+      // Ledger + puntos
+      if (correctUserIds.length > 0) {
+        // Incrementa 1 a los existentes
+        await tx.userPoints.updateMany({
+          where: { guildId: pred.guildId, userId: { in: correctUserIds } },
+          data: { total: { increment: 1 } },
+        });
+
+        // Crea los que no existían
+        // (Hacemos prefetch para evitar createMany masivo innecesario; igualmente usamos skipDuplicates)
+        const existing = await tx.userPoints.findMany({
+          where: { guildId: pred.guildId, userId: { in: correctUserIds } },
+          select: { userId: true },
+        });
+        const existingSet = new Set(existing.map((e) => e.userId));
+        const toCreate = correctUserIds.filter((uid) => !existingSet.has(uid));
+
+        if (toCreate.length > 0) {
+          await tx.userPoints.createMany({
+            data: toCreate.map((uid) => ({ guildId: pred.guildId, userId: uid, total: 1 })),
+            skipDuplicates: true,
+          });
+        }
+
+        // Ledger (1 entrada por usuario correcto)
+        await tx.pointsLedger.createMany({
+          data: correctUserIds.map((uid) => ({
+            guildId: pred.guildId,
+            userId: uid,
+            predictionId: pred.id,
+            delta: 1,
+            reason: `Correct prediction (${winnerOpt.label})`,
+          })),
         });
       }
 
-      // Ledger (1 entrada por usuario correcto)
-      await tx.pointsLedger.createMany({
-        data: correctUserIds.map(uid => ({
-          guildId: pred.guildId,
-          userId: uid,
-          predictionId: pred.id,
-          delta: 1,
-          reason: `Correct prediction (${winnerOpt.label})`,
-        })),
-      });
-    }
-
-    return {
-      totalVotes,
-      correctCount: correctUserIds.length,
-    };
-  }).catch((e) => {
-    if (e instanceof Error && e.message === "ALREADY_RESOLVED") return null;
-    throw e;
-  });
+      return {
+        totalVotes,
+        correctCount: correctUserIds.length,
+      };
+    })
+    .catch((e) => {
+      if (e instanceof Error && e.message === "ALREADY_RESOLVED") return null;
+      throw e;
+    });
 
   if (result === null) {
-    return i.editReply("⚠️ Esa predicción ya estaba resuelta (resultado existente).");
+    return respond(i, "⚠️ Esa predicción ya estaba resuelta (resultado existente).");
   }
 
+  // Respuesta efímera al admin/mod
   const embed = new EmbedBuilder()
     .setTitle("✅ Predicción resuelta")
     .setDescription(
@@ -122,15 +133,24 @@ export async function predResolve(i: ChatInputCommandInteraction) {
         `**${pred.title}**`,
         `🏁 Ganador: **${winnerOpt.label}**`,
         `🗳️ Votos: **${result.totalVotes}**`,
-        `✅ Aciertos: **${result.correctCount}** (+1 punto)`
+        `✅ Aciertos: **${result.correctCount}** (+1 punto)`,
       ].join("\n")
     )
     .setColor("#57F287");
 
-  await i.editReply({ embeds: [embed] });
+  try {
+    if (i.deferred) await i.editReply({ embeds: [embed], content: "" });
+    else await respond(i, "✅ Predicción resuelta."); // fallback muy raro
+  } catch (e: any) {
+    if (e?.code === 10062) {
+      console.warn("pred/resolve: respuesta falló con 10062", { ageMs: Date.now() - i.createdTimestamp });
+      // seguimos: el resolve ya se hizo en DB
+    } else {
+      throw e;
+    }
+  }
 
-  // Anuncio público en el canal de la predicción (para que lo vea todo el mundo).
-  // Mantiene la respuesta del comando como efímera.
+  // Anuncio público (best-effort)
   try {
     const jumpLink = pred.messageId
       ? `https://discord.com/channels/${pred.guildId}/${pred.channelId}/${pred.messageId}`
@@ -139,11 +159,9 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     const publicEmbed = new EmbedBuilder()
       .setTitle("✅ Predicción resuelta")
       .setDescription(
-        [
-          `**${pred.title}**`,
-          `🏁 Ganador: **${winnerOpt.label}**`,
-          jumpLink ? `🔗 Mensaje: ${jumpLink}` : null,
-        ].filter(Boolean).join("\n")
+        [ `**${pred.title}**`, `🏁 Ganador: **${winnerOpt.label}**`, jumpLink ? `🔗 Mensaje: ${jumpLink}` : null ]
+          .filter(Boolean)
+          .join("\n")
       )
       .setColor("#57F287");
 
@@ -163,18 +181,22 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     // ignore
   }
 
-  // (Opcional) Editar el mensaje original del embed para reflejar el resultado.
-  // Si no hay permisos o el mensaje no existe, no pasa nada.
+  // (Opcional) Editar el mensaje original para reflejar el resultado (best-effort).
   try {
     if (pred.channelId && pred.messageId) {
-      const channel = await i.client.channels.fetch(pred.channelId);
-      if (channel && channel.isTextBased()) {
-        const msg = await channel.messages.fetch(pred.messageId);
-        const newEmbed = EmbedBuilder.from(msg.embeds[0] ?? new EmbedBuilder())
-          .setFooter({ text: `PREDICCIÓN CERRADA • El ganador ha sido: ${winnerOpt.label}` })
-          .setColor("#cab0ec");
+      const channel = await i.client.channels.fetch(pred.channelId).catch(() => null);
+      if (channel && channel.isTextBased() && "messages" in channel) {
+        const msg = await channel.messages.fetch(pred.messageId).catch(() => null);
+        if (msg) {
+          const base = msg.embeds[0] ? EmbedBuilder.from(msg.embeds[0]) : new EmbedBuilder();
 
-        await msg.edit({ embeds: [newEmbed] });
+          // Evita romper si el embed original no es tuyo / no tiene el formato esperado
+          const newEmbed = base
+            .setFooter({ text: `PREDICCIÓN CERRADA • El ganador ha sido: ${winnerOpt.label}` })
+            .setColor("#cab0ec");
+
+          await msg.edit({ embeds: [newEmbed] });
+        }
       }
     }
   } catch {

@@ -1,13 +1,22 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { prisma } from "#db/prisma.js";
+import { log } from "#log.js";
+
+async function respond(i: ChatInputCommandInteraction, content: string) {
+  // 64 = MessageFlags.Ephemeral
+  if (i.deferred) return i.editReply({ content });
+  if (i.replied) return i.followUp({ content, flags: 64 });
+  return i.reply({ content, flags: 64 });
+}
 
 export async function predStats(i: ChatInputCommandInteraction) {
-  if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", ephemeral: true });
+  // Nota: en main.ts ya haces deferReply(ephemeral) para comandos.
+  // Aquí SIEMPRE responde con respond()/editReply para evitar 40060.
+
+  if (!i.inGuild()) return respond(i, "Solo en servidores.");
 
   const predictionId = i.options.getString("id", true);
-
-  // Ya fue deferid en main.ts
 
   const pred = await prisma.prediction.findUnique({
     where: { id: predictionId },
@@ -15,7 +24,7 @@ export async function predStats(i: ChatInputCommandInteraction) {
   });
 
   if (!pred) {
-    return i.editReply("❌ No existe esa predicción.");
+    return respond(i, "❌ No existe esa predicción.");
   }
 
   const grouped = await prisma.vote.groupBy({
@@ -29,8 +38,7 @@ export async function predStats(i: ChatInputCommandInteraction) {
 
   const totalVotes = grouped.reduce((acc, g) => acc + g._count._all, 0);
 
-  const statusEmoji =
-    pred.status === "OPEN" ? "🟢" : pred.status === "CLOSED" ? "🟡" : "🔴";
+  const statusEmoji = pred.status === "OPEN" ? "🟢" : pred.status === "CLOSED" ? "🟡" : "🔴";
 
   const embed = new EmbedBuilder()
     .setTitle(`📊 Stats — ${pred.title}`)
@@ -40,13 +48,16 @@ export async function predStats(i: ChatInputCommandInteraction) {
         `🗳️ **Votos totales:** ${totalVotes}`,
         pred.game ? `🎮 **Juego:** ${pred.game}` : null,
         pred.lockTime ? `⏰ **Lock:** <t:${Math.floor(pred.lockTime.getTime() / 1000)}:F>` : null,
-      ].filter(Boolean).join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
     )
     .setColor("#cab0ec");
 
   for (const opt of pred.options) {
     const c = counts.get(opt.id) ?? 0;
     const pct = totalVotes > 0 ? Math.round((c / totalVotes) * 1000) / 10 : 0;
+
     embed.addFields({
       name: opt.label,
       value: `**${c}** votos (${pct}%)\n\`${opt.id}\``,
@@ -54,5 +65,14 @@ export async function predStats(i: ChatInputCommandInteraction) {
     });
   }
 
-  return i.editReply({ embeds: [embed] });
+  try {
+    if (i.deferred) return await i.editReply({ embeds: [embed], content: "" });
+    return await respond(i, "📊 Stats generadas."); // fallback raro
+  } catch (e: any) {
+    if (e?.code === 10062) {
+      log.warn("pred/stats: respuesta falló con 10062", { ageMs: Date.now() - i.createdTimestamp });
+      return;
+    }
+    throw e;
+  }
 }

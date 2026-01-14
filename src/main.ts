@@ -28,43 +28,71 @@ process.on("uncaughtException", (err) => {
 
 client.on("interactionCreate", async (i) => {
   try {
-    // CRÍTICO: Defer INMEDIATAMENTE antes de cualquier procesamiento.
-    // Esto previene 10062 (Unknown interaction) en operaciones que tarden >3s.
-    if (i.isRepliable() && !i.deferred && !i.replied) {
-      try {
-        // Defer con ephemeral=true por defecto (los comandos específicos pueden rechazar después)
-        await i.deferReply({ flags: 64 });
-      } catch (e: any) {
-        // Si falla el defer, la interacción expiró. Log y termina.
-        if (e?.code === 10062) {
-          log.warn("Interacción expirada antes de poder hacer defer", {
-            type: i.type,
-            isCommand: i.isChatInputCommand?.(),
-            isButton: i.isButton?.(),
-            ageMs: Date.now() - i.createdTimestamp,
-            userId: i.user?.id,
-          });
-          return;
+    // CRÍTICO: ACK INMEDIATO antes de cualquier procesamiento.
+    // - Slash commands: deferReply (ephemeral) para tener 15min
+    // - Buttons: deferUpdate para ACK sin reply
+    // Esto reduce 10062 (Unknown interaction) y evita flujos incorrectos en botones.
+    try {
+      if (i.isChatInputCommand()) {
+        if (!i.deferred && !i.replied) {
+          await i.deferReply({ flags: 64 }); // ephemeral
         }
-        throw e;
+      } else if (i.isButton()) {
+        if (!i.deferred && !i.replied) {
+          await i.deferUpdate();
+        }
       }
+    } catch (e: any) {
+      // 10062 => expirada / unknown interaction (muy típico en dev con watch/restarts)
+      if (e?.code === 10062) {
+        log.warn("Interacción expirada antes de poder hacer defer", {
+          type: i.type,
+          isCommand: i.isChatInputCommand?.(),
+          isButton: i.isButton?.(),
+          ageMs: Date.now() - i.createdTimestamp,
+          userId: i.user?.id,
+        });
+        return;
+      }
+      // 40060 => ya estaba acknowledged (doble handler / reintento)
+      if (e?.code === 40060) {
+        log.warn("Interacción ya acknowledged (se ignora)", {
+          type: i.type,
+          isCommand: i.isChatInputCommand?.(),
+          isButton: i.isButton?.(),
+          ageMs: Date.now() - i.createdTimestamp,
+          userId: i.user?.id,
+        });
+        return;
+      }
+      throw e;
     }
 
-    // Ahora es seguro procesar la interacción (tenemos 15 min para responder)
+    // Ahora es seguro procesar la interacción
     if (i.isChatInputCommand()) return await handleCommand(i);
     if (i.isButton()) return await handleInteraction(i);
   } catch (e) {
     log.error(e);
-    if (i.isRepliable()) {
-      const msg = "❌ Error interno.";
-      try {
-        // Ahora siempre está deferred, así que usar editReply
+
+    const msg = "❌ Error interno.";
+
+    // Respuesta de error robusta según tipo/estado de ACK
+    try {
+      if (i.isChatInputCommand()) {
+        if (i.deferred) await i.editReply({ content: msg });
+        else if (!i.replied) await i.reply({ content: msg, flags: 64 });
+        else await i.followUp({ content: msg, flags: 64 });
+      } else if (i.isButton()) {
+        // Para botones normalmente usamos deferUpdate(). Tras eso, lo más seguro es followUp ephemeral.
+        // (Actualizar el mensaje original se debería hacer dentro de handleInteraction vía i.message.edit(...))
+        if (!i.replied) await i.followUp({ content: msg, flags: 64 });
+      } else if (i.isRepliable()) {
+        // Fallback genérico para otros tipos repliables
         if (i.deferred) await i.editReply({ content: msg });
         else await i.followUp({ content: msg, flags: 64 });
-      } catch (err) {
-        // Si no se puede enviar el error, solo log.
-        log.error("No se pudo enviar el mensaje de error de la interacción.", err);
       }
+    } catch (err) {
+      log.error("No se pudo enviar el mensaje de error de la interacción.", err);
     }
   }
 });

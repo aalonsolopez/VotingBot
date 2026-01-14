@@ -50,22 +50,27 @@ function parseLockAt(raw: string): Date | null {
 }
 
 export async function predCreate(i: ChatInputCommandInteraction) {
-  if (!i.inGuild()) return i.reply({ content: "Solo en servidores.", flags: 64 });
+  // Nota: en main.ts ya haces deferReply(ephemeral) para comandos.
+  // Aquí, SIEMPRE responde con respond() para evitar 40060 (already acknowledged).
+
+  if (!i.inGuild()) return respond(i, "Solo en servidores.");
 
   if (!isAdminOrMod(i)) {
-    return i.reply({ content: "❌ No tienes permisos para crear predicciones.", flags: 64 });
+    return respond(i, "❌ No tienes permisos para crear predicciones.");
   }
-
-  // Ya fue deferid en main.ts, así que usar editReply/respond para todo lo demás.
 
   const title = i.options.getString("title", true);
   const game = i.options.getString("game", false);
+
   const optionsCsv = i.options.getString("options", true); // "G2,FNC"
-  const options = optionsCsv.split(",").map(s => s.trim()).filter(Boolean);
+  const options = optionsCsv
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   const lockAtRaw = i.options.getString("lock_at", true);
 
-  let lockTime: Date | null = null;
-  lockTime = parseLockAt(lockAtRaw);
+  const lockTime = parseLockAt(lockAtRaw);
   if (!lockTime) {
     return respond(
       i,
@@ -75,63 +80,116 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     );
   }
 
-  if (lockTime && lockTime.getTime() <= Date.now()) {
+  if (lockTime.getTime() <= Date.now()) {
     return respond(i, "❌ La fecha de cierre debe ser futura.");
   }
 
-  if (options.length < 2) {
-    return respond(i, "Pon al menos 2 opciones (separadas por coma)." );
+  // Discord limita componentes: máximo 25 botones por mensaje. Te dejo un límite razonable:
+  if (options.length < 2) return respond(i, "Pon al menos 2 opciones (separadas por coma).");
+  if (options.length > 25) return respond(i, "Demasiadas opciones. Máximo 25 opciones.");
+
+  // Evita duplicados exactos (por UX + posibles constraints tuyas)
+  const normalized = new Set<string>();
+  for (const opt of options) {
+    const k = opt.toLowerCase();
+    if (normalized.has(k)) return respond(i, "Tienes opciones duplicadas. Revisa `options`.");
+    normalized.add(k);
   }
 
-  const pred = await prisma.prediction.create({
-    data: {
-      guildId: i.guildId!,
-      channelId: i.channelId!,
-      title,
-      game,
-      lockTime,
-      createdBy: i.user.id,
-      options: { create: options.map(label => ({ label })) },
-    },
-    include: { options: true },
-  });
+  // 1) Crea en DB (sin messageId aún)
+  let pred: any;
+  try {
+    pred = await prisma.prediction.create({
+      data: {
+        guildId: i.guildId!,
+        channelId: i.channelId!,
+        title,
+        game,
+        lockTime,
+        createdBy: i.user.id,
+        options: { create: options.map((label) => ({ label })) },
+      },
+      include: { options: true },
+    });
+  } catch (e) {
+    log.error("pred/create: fallo creando en DB", e);
+    return respond(i, "❌ No se pudo crear la predicción en la base de datos.");
+  }
 
+  // 2) Construye y publica el mensaje en el canal
   const payload = buildPredictionMessage({
     predictionId: pred.id,
     title: pred.title,
     game: pred.game,
-    options: pred.options.map(o => ({ id: o.id, label: o.label })),
+    options: pred.options.map((o: any) => ({ id: o.id, label: o.label })),
   });
 
+  let msgId: string | null = null;
+  try {
+    const ch = i.channel ?? (await i.client.channels.fetch(i.channelId).catch(() => null));
+    if (!ch || !ch.isTextBased() || !("send" in ch)) {
+      // Si no podemos mandar, limpia DB para no dejar basura
+      await prisma.prediction.delete({ where: { id: pred.id } }).catch(() => {});
+      return respond(i, "❌ No pude publicar el mensaje en este canal (canal no válido).");
+    }
+
+    const msg = await ch.send(payload);
+    msgId = msg.id;
+  } catch (e) {
+    log.error("pred/create: fallo enviando mensaje al canal", e);
+    // Limpia DB para evitar predicción huérfana
+    await prisma.prediction.delete({ where: { id: pred.id } }).catch(() => {});
+    return respond(
+      i,
+      "❌ No pude publicar el mensaje en este canal. ¿Tengo permisos de **Enviar mensajes** y **Insertar enlaces/embeds**?"
+    );
+  }
+
+  // 3) Actualiza messageId
+  try {
+    await prisma.prediction.update({
+      where: { id: pred.id },
+      data: { messageId: msgId },
+    });
+  } catch (e) {
+    log.error("pred/create: fallo guardando messageId (la predicción ya existe)", e);
+    // No abortamos: el mensaje ya está publicado, pero avisamos al admin.
+  }
+
+  // 4) Respuesta al usuario (best-effort)
+  const jumpLink =
+    i.guildId && msgId ? `https://discord.com/channels/${i.guildId}/${i.channelId}/${msgId}` : null;
+
+  const lockInfo = pred.lockTime
+    ? `<t:${Math.floor(new Date(pred.lockTime).getTime() / 1000)}:F>`
+    : "(sin cierre automático)";
+
   const idsLines = [
+    `✅ Predicción creada.`,
+    "",
     `🆔 Prediction ID: \`${pred.id}\``,
-    "", 
+    `Cierre: ${lockInfo}`,
+    jumpLink ? `Mensaje: ${jumpLink}` : null,
+    "",
     "Opciones:",
-    ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
-  ].join("\n");
+    ...pred.options.map((o: any) => `- ${o.label}: \`${o.id}\``),
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   try {
-    await respond(i, `✅ Predicción creada.\n\n${idsLines}`);
+    await respond(i, idsLines);
   } catch (e: any) {
     if (e?.code === 10062) {
       log.warn("pred/create: respuesta falló con 10062", { ageMs: Date.now() - i.createdTimestamp });
-      return;
+      // Aunque no podamos responder, la predicción ya quedó publicada.
+    } else {
+      log.error("pred/create: fallo respondiendo a la interacción", e);
     }
-    log.error("pred/create: fallo respondiendo a la interacción", e);
-    throw e;
   }
-  const msg = await i.channel!.send(payload);
 
-  await prisma.prediction.update({
-    where: { id: pred.id },
-    data: { messageId: msg.id },
-  });
-
-  // Publica los IDs en un canal dedicado (si existe y el bot tiene permisos).
+  // 5) Publica los IDs en un canal dedicado (best-effort)
   const idsChannelId = env.PRED_IDS_CHANNEL_ID ?? "1460324481661927617";
-  const jumpLink = i.guildId ? `https://discord.com/channels/${i.guildId}/${i.channelId}/${msg.id}` : null;
-  const lockInfo = pred.lockTime ? `<t:${Math.floor(pred.lockTime.getTime() / 1000)}:F>` : "(sin cierre automático)";
-
   const logText = [
     "🆔 **IDs de predicción**",
     `Prediction ID: \`${pred.id}\``,
@@ -139,8 +197,10 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     jumpLink ? `Mensaje: ${jumpLink}` : null,
     "",
     "Opciones:",
-    ...pred.options.map(o => `- ${o.label}: \`${o.id}\``),
-  ].filter(Boolean).join("\n");
+    ...pred.options.map((o: any) => `- ${o.label}: \`${o.id}\``),
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   try {
     const ch = await i.client.channels.fetch(idsChannelId);
