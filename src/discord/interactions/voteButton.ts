@@ -2,7 +2,7 @@ import type { ButtonInteraction } from "discord.js";
 import { prisma } from "#db/prisma.js";
 import { decodeVoteId } from "../ids/customId.js";
 import { disableMessageButtons, sendAutoCloseMessage } from "../pred/autoClose.js";
-import { log } from "#log.js";
+import { log } from "#src/log.js";
 
 /**
  * Button handler: registra (o actualiza) el voto de un usuario.
