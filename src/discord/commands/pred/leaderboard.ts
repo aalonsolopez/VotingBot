@@ -24,8 +24,9 @@ function clamp(n: number, min: number, max: number) {
 export async function leaderboard(i: ChatInputCommandInteraction) {
   if (!i.inGuild()) return respond(i, "Solo en servidores.");
 
-  const limitRaw = i.options.getInteger("limit", false) ?? 10;
-  const limit = clamp(limitRaw, 1, 25);
+  const limitRaw = i.options.getInteger("top", false) ?? 10;
+  const maxParticipants = await prisma.userPoints.count({ where: { guildId: i.guildId! } });
+  const limit = clamp(limitRaw, 1, maxParticipants > 0 ? maxParticipants : 25);
 
   // Puedes registrar el option como "mode" o "type". Soporto ambos.
   const modeRaw =
