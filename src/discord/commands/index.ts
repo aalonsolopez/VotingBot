@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction } from "discord.js";
 import { predCreate } from "./pred/create.js";
 import { predStats } from "./pred/stats.js";
 import { predResolve } from "./pred/resolve.js";
+import { predUndo } from "./pred/undo.js";
 import { leaderboard } from "./pred/leaderboard.js";
 import { isAdminOrMod } from "./permissions.js";
 
@@ -20,6 +21,7 @@ export async function handleCommand(i: ChatInputCommandInteraction) {
   if (sub === "create") return predCreate(i);
   if (sub === "stats") return predStats(i);
   if (sub === "resolve") return predResolve(i);
+  if (sub === "undo") return predUndo(i);
   if (sub === "leaderboard") return leaderboard(i);
 
   return i.reply({ content: "Subcomando no soportado.", ephemeral: true });

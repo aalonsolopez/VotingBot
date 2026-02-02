@@ -27,6 +27,10 @@ const commands = [
         .addStringOption(o => o.setName("winner").setDescription("Option ID ganadora").setRequired(true))
     )
     .addSubcommand(s =>
+      s.setName("undo").setDescription("Deshacer resolución (admin)")
+        .addStringOption(o => o.setName("id").setDescription("Prediction ID").setRequired(true))
+    )
+    .addSubcommand(s =>
       s.setName("leaderboard").setDescription("Tabla de puntos")
         .addStringOption(o => o.setName("user").setDescription("Usuario a consultar").setRequired(false))
         .addBooleanOption(o => o.setName("total").setDescription("¿Quieres ver el total?").setRequired(false))
