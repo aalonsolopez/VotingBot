@@ -25,8 +25,10 @@ export async function handleCommand(i: ChatInputCommandInteraction) {
   
   const sub = i.options.getSubcommand();
 
+  // Disponible para cualquier usuario (incluidos admins/mods)
+  if (sub === "my_votes") return predSeeVotes(i);
+
   if (!isAdminOrMod(i)) {
-    if (sub === "my_votes") return predSeeVotes(i);
     return respond(i, "❌ Solo admins o moderadores pueden usar estos comandos.");
   }
 
