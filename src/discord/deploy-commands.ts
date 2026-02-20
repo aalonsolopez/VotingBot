@@ -36,6 +36,10 @@ const commands = [
         .addBooleanOption(o => o.setName("total").setDescription("¿Quieres ver el total?").setRequired(false))
         .addIntegerOption(o => o.setName("top").setDescription("Filtrar numero de participantes en el top").setRequired(false))
     )
+    .addSubcommand(s =>
+      s.setName("my_votes").setDescription("Ver mis votos (no resueltos)")
+        .addStringOption(o => o.setName("id").setDescription("Prediction ID (opcional)").setRequired(false))
+    )
     .toJSON(),
 ];
 
