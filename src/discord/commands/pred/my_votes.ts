@@ -59,13 +59,10 @@ export async function predSeeVotes(i: ChatInputCommandInteraction) {
         const link = pred.messageId
             ? `https://discord.com/channels/${guildId}/${pred.channelId}/${pred.messageId}`
             : null;
-        const lock = pred.lockTime ? `⏰ <t:${Math.floor(pred.lockTime.getTime() / 1000)}:R>` : null;
         return [
             `${statusEmoji(pred.status)} **${pred.title}**`,
             `➡️ Tu voto: **${v.option.label}**`,
-            lock,
             link ? `🔗 ${link}` : null,
-            "🆔 `" + pred.id + "`",
         ]
             .filter(Boolean)
             .join("\n");
