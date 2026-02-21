@@ -19,8 +19,12 @@ export function buildPredictionMessage(args: {
     .setColor("#cab0ec");
   }
 
-  const row = new ActionRowBuilder<ButtonBuilder>();
-  for (const opt of args.options.slice(0, 5)) {
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+  for (let i = 0; i < Math.min(args.options.length, 25); i++) {
+    const opt = args.options[i];
+    if (!opt) continue;
+    if (i % 5 === 0) rows.push(new ActionRowBuilder<ButtonBuilder>());
+
     const button = new ButtonBuilder()
       .setCustomId(encodeVoteId({ v: 1, predictionId: args.predictionId, optionId: opt.id }))
       .setLabel(opt.label)
@@ -29,8 +33,9 @@ export function buildPredictionMessage(args: {
     const emoji = getLecTeamEmoji(opt.label);
     if (emoji) button.setEmoji(emoji);
 
-    row.addComponents(button);
+    const currentRow = rows[rows.length - 1];
+    if (currentRow) currentRow.addComponents(button);
   }
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: rows };
 }
