@@ -1,11 +1,15 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import { createTournamentSelect } from "../../components/tournamentSelect.js";
 
-async function respond(i: ChatInputCommandInteraction, content: string) {
+async function respond(i: ChatInputCommandInteraction, content: string | { content?: string; components?: any[] }) {
   // 64 = MessageFlags.Ephemeral
-  if (i.deferred) return i.editReply({ content });
-  if (i.replied) return i.followUp({ content, flags: 64 });
-  return i.reply({ content, flags: 64 });
+  const options = typeof content === 'string' 
+    ? { content, flags: 64 }
+    : { ...content, flags: 64 };
+    
+  if (i.deferred) return i.editReply(options);
+  if (i.replied) return i.followUp(options);
+  return i.reply(options);
 }
 
 export async function tournamentSelect(i: ChatInputCommandInteraction) {
@@ -21,10 +25,9 @@ export async function tournamentSelect(i: ChatInputCommandInteraction) {
     }
     
     // Enviar mensaje con dropdown
-    await i.reply({
+    return respond(i, {
       content: "Selecciona un torneo para ver sus predicciones:",
       components: [row],
-      ephemeral: true,
     });
     
   } catch (error) {

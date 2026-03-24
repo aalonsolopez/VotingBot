@@ -15,5 +15,8 @@ export async function handleInteraction(i: ButtonInteraction | StringSelectMenuI
     return;
   }
   
-  return i.reply({ content: "Interacción no soportada.", ephemeral: true });
+  // Este caso nunca debería ocurrir (i siempre es ButtonInteraction | StringSelectMenuInteraction)
+  // Pero TypeScript necesita exhaustividad
+  const _exhaustiveCheck: never = i;
+  return _exhaustiveCheck;
 }
