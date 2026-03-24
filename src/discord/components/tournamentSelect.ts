@@ -11,7 +11,8 @@ export interface TournamentSelectOption {
 
 export async function createTournamentSelect(
   guildId: string,
-  selectedTournamentId?: string | null
+  selectedTournamentId?: string | null,
+  command: string = "general"
 ): Promise<{ row: ActionRowBuilder<StringSelectMenuBuilder>; tournaments: Tournament[] }> {
   const tournaments = await getByGuild(guildId, { status: "ACTIVE" });
   
@@ -33,7 +34,7 @@ export async function createTournamentSelect(
   }
 
   const select = new StringSelectMenuBuilder()
-    .setCustomId("tournament-select")
+    .setCustomId(`tournament-select-${command}`)
     .setPlaceholder("Selecciona un torneo")
     .setMinValues(1)
     .setMaxValues(1)
@@ -47,11 +48,13 @@ export async function createTournamentSelect(
 export function parseTournamentSelectInteraction(
   customId: string,
   values: string[]
-): { tournamentId: string | null } | null {
-  if (customId !== "tournament-select") return null;
+): { tournamentId: string | null; command: string } | null {
+  const prefix = "tournament-select-";
+  if (!customId.startsWith(prefix)) return null;
   
+  const command = customId.slice(prefix.length);
   const selected = values[0];
-  if (!selected || selected === "none") return { tournamentId: null };
+  const tournamentId = (!selected || selected === "none") ? null : selected;
   
-  return { tournamentId: selected };
+  return { tournamentId, command };
 }

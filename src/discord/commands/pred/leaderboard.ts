@@ -2,6 +2,8 @@ import type { ChatInputCommandInteraction } from "discord.js";
 import { getPointsLeaderboard, getParticipationLeaderboard } from "../../../services/leaderboard.js";
 import { getById as getTournamentById } from "../../../services/tournament.js";
 import { log } from "../../../log.js";
+import { createTournamentSelect } from "../../components/tournamentSelect.js";
+import { saveCommandData } from "../../tempData.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
@@ -37,6 +39,35 @@ export async function leaderboard(i: ChatInputCommandInteraction) {
 
   const guildId = i.guildId!;
   const requesterId = i.user.id;
+
+  // Si no se especificó torneo, mostrar dropdown
+  if (!tournamentId) {
+    // Guardar parámetros para usarlos cuando se seleccione torneo
+    saveCommandData(
+      guildId,
+      requesterId,
+      "pred-leaderboard",
+      {
+        limit,
+        mode: modeRaw,
+      },
+      10 // 10 minutos TTL
+    );
+
+    // Mostrar dropdown de selección de torneo
+    try {
+      const { row } = await createTournamentSelect(guildId, null, "pred-leaderboard");
+      await i.reply({
+        content: "Selecciona un torneo para ver el leaderboard (o selecciona 'Sin torneo' para leaderboard global):",
+        components: [row],
+        ephemeral: true,
+      });
+      return;
+    } catch (error) {
+      log.error("leaderboard: error mostrando dropdown", error);
+      return respond(i, "❌ Error al mostrar selección de torneo.");
+    }
+  }
 
   // Verificar que el torneo existe si se especifica
   let tournamentName = "";

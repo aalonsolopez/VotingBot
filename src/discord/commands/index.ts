@@ -7,6 +7,7 @@ import { leaderboard } from "./pred/leaderboard.js";
 import { predSeeVotes } from "./pred/my_votes.js";
 import { tournamentCreate } from "./tournament/create.js";
 import { tournamentDeactivate } from "./tournament/deactivate.js";
+import { tournamentSelect } from "./tournament/select.js";
 import { isAdminOrMod } from "./permissions.js";
 
 
@@ -32,6 +33,7 @@ export async function handleCommand(i: ChatInputCommandInteraction) {
     const sub = i.options.getSubcommand();
     if (sub === "create") return tournamentCreate(i);
     if (sub === "deactivate") return tournamentDeactivate(i);
+    if (sub === "select") return tournamentSelect(i);
     return respond(i, "Subcomando de torneo no soportado.");
   }
 

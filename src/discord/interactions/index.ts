@@ -1,7 +1,19 @@
-import type { ButtonInteraction } from "discord.js";
+import type { ButtonInteraction, StringSelectMenuInteraction } from "discord.js";
 import { voteButton } from "./voteButton.js";
+import { handleTournamentSelect } from "./tournamentSelect.js";
 
-export async function handleInteraction(i: ButtonInteraction) {
-  const ok = await voteButton(i);
-  if (!ok) return i.reply({ content: "Interacción no soportada.", ephemeral: true });
+export async function handleInteraction(i: ButtonInteraction | StringSelectMenuInteraction) {
+  if (i.isButton()) {
+    const ok = await voteButton(i);
+    if (!ok) return i.reply({ content: "Interacción no soportada.", ephemeral: true });
+    return;
+  }
+  
+  if (i.isStringSelectMenu()) {
+    const ok = await handleTournamentSelect(i);
+    if (!ok) return i.reply({ content: "Interacción no soportada.", ephemeral: true });
+    return;
+  }
+  
+  return i.reply({ content: "Interacción no soportada.", ephemeral: true });
 }

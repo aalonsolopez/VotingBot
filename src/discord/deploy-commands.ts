@@ -61,6 +61,9 @@ const commands = [
             { name: "Activate", value: "activate" }
           ))
     )
+    .addSubcommand(s =>
+      s.setName("select").setDescription("Seleccionar torneo activo")
+    )
     .toJSON(),
 ];
 

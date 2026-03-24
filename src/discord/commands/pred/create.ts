@@ -6,6 +6,8 @@ import { getById as getTournamentById } from "../../../services/tournament.js";
 import { buildPredictionMessage } from "../../views/predictionEmbed.js";
 import { isAdminOrMod } from "../permissions.js";
 import { log } from "../../../log.js";
+import { createTournamentSelect } from "../../components/tournamentSelect.js";
+import { saveCommandData } from "../../tempData.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
@@ -97,6 +99,38 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     const k = opt.toLowerCase();
     if (normalized.has(k)) return respond(i, "Tienes opciones duplicadas. Revisa `options`.");
     normalized.add(k);
+  }
+
+  // Si no se especificó torneo, mostrar dropdown
+  if (!tournamentId) {
+    // Guardar parámetros para usarlos cuando se seleccione torneo
+    saveCommandData(
+      i.guildId!,
+      i.user.id,
+      "pred-create",
+      {
+        title,
+        game,
+        optionsCsv,
+        lockAtRaw,
+        channelId: i.channelId!,
+      },
+      10 // 10 minutos TTL
+    );
+
+    // Mostrar dropdown de selección de torneo
+    try {
+      const { row } = await createTournamentSelect(i.guildId!, null, "pred-create");
+      await i.reply({
+        content: "Selecciona un torneo para la predicción (o selecciona 'Sin torneo' para predicción general):",
+        components: [row],
+        ephemeral: true,
+      });
+      return;
+    } catch (error) {
+      log.error("pred/create: error mostrando dropdown", error);
+      return respond(i, "❌ Error al mostrar selección de torneo.");
+    }
   }
 
   // 1) Crea en DB (sin messageId aún)
