@@ -8,9 +8,14 @@ export function buildPredictionMessage(args: {
   game?: string | null;
   options: { id: string; label: string }[];
   showIds?: boolean;
+  tournamentName?: string | null;
 }) {
+  const titleWithTournament = args.tournamentName 
+    ? `${args.title} [${args.tournamentName}]`
+    : args.title;
+
   const embed = new EmbedBuilder()
-    .setTitle(args.title)
+    .setTitle(titleWithTournament)
     .setDescription(args.game ? `🎮 ${args.game}` : null)
     .setColor("#cab0ec");
 

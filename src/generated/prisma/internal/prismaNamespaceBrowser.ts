@@ -55,7 +55,8 @@ export const ModelName = {
   PredictionOption: 'PredictionOption',
   Vote: 'Vote',
   PredictionResult: 'PredictionResult',
-  UserPoints: 'UserPoints',
+  Tournament: 'Tournament',
+  TournamentPoints: 'TournamentPoints',
   PointsLedger: 'PointsLedger'
 } as const
 
@@ -85,7 +86,8 @@ export const PredictionScalarFieldEnum = {
   lockTime: 'lockTime',
   status: 'status',
   createdBy: 'createdBy',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  tournamentId: 'tournamentId'
 } as const
 
 export type PredictionScalarFieldEnum = (typeof PredictionScalarFieldEnum)[keyof typeof PredictionScalarFieldEnum]
@@ -121,19 +123,34 @@ export const PredictionResultScalarFieldEnum = {
 export type PredictionResultScalarFieldEnum = (typeof PredictionResultScalarFieldEnum)[keyof typeof PredictionResultScalarFieldEnum]
 
 
-export const UserPointsScalarFieldEnum = {
+export const TournamentScalarFieldEnum = {
   id: 'id',
+  name: 'name',
   guildId: 'guildId',
+  status: 'status',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  creatorId: 'creatorId',
+  createdAt: 'createdAt'
+} as const
+
+export type TournamentScalarFieldEnum = (typeof TournamentScalarFieldEnum)[keyof typeof TournamentScalarFieldEnum]
+
+
+export const TournamentPointsScalarFieldEnum = {
+  id: 'id',
+  tournamentId: 'tournamentId',
   userId: 'userId',
   total: 'total'
 } as const
 
-export type UserPointsScalarFieldEnum = (typeof UserPointsScalarFieldEnum)[keyof typeof UserPointsScalarFieldEnum]
+export type TournamentPointsScalarFieldEnum = (typeof TournamentPointsScalarFieldEnum)[keyof typeof TournamentPointsScalarFieldEnum]
 
 
 export const PointsLedgerScalarFieldEnum = {
   id: 'id',
   guildId: 'guildId',
+  tournamentId: 'tournamentId',
   userId: 'userId',
   predictionId: 'predictionId',
   delta: 'delta',

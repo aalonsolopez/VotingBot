@@ -35,6 +35,7 @@ export type PredictionMinAggregateOutputType = {
   status: $Enums.PredictionStatus | null
   createdBy: string | null
   createdAt: Date | null
+  tournamentId: string | null
 }
 
 export type PredictionMaxAggregateOutputType = {
@@ -48,6 +49,7 @@ export type PredictionMaxAggregateOutputType = {
   status: $Enums.PredictionStatus | null
   createdBy: string | null
   createdAt: Date | null
+  tournamentId: string | null
 }
 
 export type PredictionCountAggregateOutputType = {
@@ -61,6 +63,7 @@ export type PredictionCountAggregateOutputType = {
   status: number
   createdBy: number
   createdAt: number
+  tournamentId: number
   _all: number
 }
 
@@ -76,6 +79,7 @@ export type PredictionMinAggregateInputType = {
   status?: true
   createdBy?: true
   createdAt?: true
+  tournamentId?: true
 }
 
 export type PredictionMaxAggregateInputType = {
@@ -89,6 +93,7 @@ export type PredictionMaxAggregateInputType = {
   status?: true
   createdBy?: true
   createdAt?: true
+  tournamentId?: true
 }
 
 export type PredictionCountAggregateInputType = {
@@ -102,6 +107,7 @@ export type PredictionCountAggregateInputType = {
   status?: true
   createdBy?: true
   createdAt?: true
+  tournamentId?: true
   _all?: true
 }
 
@@ -188,6 +194,7 @@ export type PredictionGroupByOutputType = {
   status: $Enums.PredictionStatus
   createdBy: string
   createdAt: Date
+  tournamentId: string | null
   _count: PredictionCountAggregateOutputType | null
   _min: PredictionMinAggregateOutputType | null
   _max: PredictionMaxAggregateOutputType | null
@@ -222,9 +229,11 @@ export type PredictionWhereInput = {
   status?: Prisma.EnumPredictionStatusFilter<"Prediction"> | $Enums.PredictionStatus
   createdBy?: Prisma.StringFilter<"Prediction"> | string
   createdAt?: Prisma.DateTimeFilter<"Prediction"> | Date | string
+  tournamentId?: Prisma.StringNullableFilter<"Prediction"> | string | null
   options?: Prisma.PredictionOptionListRelationFilter
   votes?: Prisma.VoteListRelationFilter
   result?: Prisma.XOR<Prisma.PredictionResultNullableScalarRelationFilter, Prisma.PredictionResultWhereInput> | null
+  tournament?: Prisma.XOR<Prisma.TournamentNullableScalarRelationFilter, Prisma.TournamentWhereInput> | null
 }
 
 export type PredictionOrderByWithRelationInput = {
@@ -238,9 +247,11 @@ export type PredictionOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  tournamentId?: Prisma.SortOrderInput | Prisma.SortOrder
   options?: Prisma.PredictionOptionOrderByRelationAggregateInput
   votes?: Prisma.VoteOrderByRelationAggregateInput
   result?: Prisma.PredictionResultOrderByWithRelationInput
+  tournament?: Prisma.TournamentOrderByWithRelationInput
 }
 
 export type PredictionWhereUniqueInput = Prisma.AtLeast<{
@@ -257,9 +268,11 @@ export type PredictionWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumPredictionStatusFilter<"Prediction"> | $Enums.PredictionStatus
   createdBy?: Prisma.StringFilter<"Prediction"> | string
   createdAt?: Prisma.DateTimeFilter<"Prediction"> | Date | string
+  tournamentId?: Prisma.StringNullableFilter<"Prediction"> | string | null
   options?: Prisma.PredictionOptionListRelationFilter
   votes?: Prisma.VoteListRelationFilter
   result?: Prisma.XOR<Prisma.PredictionResultNullableScalarRelationFilter, Prisma.PredictionResultWhereInput> | null
+  tournament?: Prisma.XOR<Prisma.TournamentNullableScalarRelationFilter, Prisma.TournamentWhereInput> | null
 }, "id">
 
 export type PredictionOrderByWithAggregationInput = {
@@ -273,6 +286,7 @@ export type PredictionOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  tournamentId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.PredictionCountOrderByAggregateInput
   _max?: Prisma.PredictionMaxOrderByAggregateInput
   _min?: Prisma.PredictionMinOrderByAggregateInput
@@ -292,6 +306,7 @@ export type PredictionScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumPredictionStatusWithAggregatesFilter<"Prediction"> | $Enums.PredictionStatus
   createdBy?: Prisma.StringWithAggregatesFilter<"Prediction"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Prediction"> | Date | string
+  tournamentId?: Prisma.StringNullableWithAggregatesFilter<"Prediction"> | string | null
 }
 
 export type PredictionCreateInput = {
@@ -308,6 +323,7 @@ export type PredictionCreateInput = {
   options?: Prisma.PredictionOptionCreateNestedManyWithoutPredictionInput
   votes?: Prisma.VoteCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultCreateNestedOneWithoutPredictionInput
+  tournament?: Prisma.TournamentCreateNestedOneWithoutPredictionsInput
 }
 
 export type PredictionUncheckedCreateInput = {
@@ -321,6 +337,7 @@ export type PredictionUncheckedCreateInput = {
   status?: $Enums.PredictionStatus
   createdBy: string
   createdAt?: Date | string
+  tournamentId?: string | null
   options?: Prisma.PredictionOptionUncheckedCreateNestedManyWithoutPredictionInput
   votes?: Prisma.VoteUncheckedCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultUncheckedCreateNestedOneWithoutPredictionInput
@@ -340,6 +357,7 @@ export type PredictionUpdateInput = {
   options?: Prisma.PredictionOptionUpdateManyWithoutPredictionNestedInput
   votes?: Prisma.VoteUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUpdateOneWithoutPredictionNestedInput
+  tournament?: Prisma.TournamentUpdateOneWithoutPredictionsNestedInput
 }
 
 export type PredictionUncheckedUpdateInput = {
@@ -353,6 +371,7 @@ export type PredictionUncheckedUpdateInput = {
   status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tournamentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   options?: Prisma.PredictionOptionUncheckedUpdateManyWithoutPredictionNestedInput
   votes?: Prisma.VoteUncheckedUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUncheckedUpdateOneWithoutPredictionNestedInput
@@ -369,6 +388,7 @@ export type PredictionCreateManyInput = {
   status?: $Enums.PredictionStatus
   createdBy: string
   createdAt?: Date | string
+  tournamentId?: string | null
 }
 
 export type PredictionUpdateManyMutationInput = {
@@ -395,6 +415,7 @@ export type PredictionUncheckedUpdateManyInput = {
   status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tournamentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PredictionCountOrderByAggregateInput = {
@@ -408,6 +429,7 @@ export type PredictionCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  tournamentId?: Prisma.SortOrder
 }
 
 export type PredictionMaxOrderByAggregateInput = {
@@ -421,6 +443,7 @@ export type PredictionMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  tournamentId?: Prisma.SortOrder
 }
 
 export type PredictionMinOrderByAggregateInput = {
@@ -434,11 +457,22 @@ export type PredictionMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  tournamentId?: Prisma.SortOrder
 }
 
 export type PredictionScalarRelationFilter = {
   is?: Prisma.PredictionWhereInput
   isNot?: Prisma.PredictionWhereInput
+}
+
+export type PredictionListRelationFilter = {
+  every?: Prisma.PredictionWhereInput
+  some?: Prisma.PredictionWhereInput
+  none?: Prisma.PredictionWhereInput
+}
+
+export type PredictionOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type StringFieldUpdateOperationsInput = {
@@ -503,6 +537,48 @@ export type PredictionUpdateOneRequiredWithoutResultNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PredictionUpdateToOneWithWhereWithoutResultInput, Prisma.PredictionUpdateWithoutResultInput>, Prisma.PredictionUncheckedUpdateWithoutResultInput>
 }
 
+export type PredictionCreateNestedManyWithoutTournamentInput = {
+  create?: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput> | Prisma.PredictionCreateWithoutTournamentInput[] | Prisma.PredictionUncheckedCreateWithoutTournamentInput[]
+  connectOrCreate?: Prisma.PredictionCreateOrConnectWithoutTournamentInput | Prisma.PredictionCreateOrConnectWithoutTournamentInput[]
+  createMany?: Prisma.PredictionCreateManyTournamentInputEnvelope
+  connect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+}
+
+export type PredictionUncheckedCreateNestedManyWithoutTournamentInput = {
+  create?: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput> | Prisma.PredictionCreateWithoutTournamentInput[] | Prisma.PredictionUncheckedCreateWithoutTournamentInput[]
+  connectOrCreate?: Prisma.PredictionCreateOrConnectWithoutTournamentInput | Prisma.PredictionCreateOrConnectWithoutTournamentInput[]
+  createMany?: Prisma.PredictionCreateManyTournamentInputEnvelope
+  connect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+}
+
+export type PredictionUpdateManyWithoutTournamentNestedInput = {
+  create?: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput> | Prisma.PredictionCreateWithoutTournamentInput[] | Prisma.PredictionUncheckedCreateWithoutTournamentInput[]
+  connectOrCreate?: Prisma.PredictionCreateOrConnectWithoutTournamentInput | Prisma.PredictionCreateOrConnectWithoutTournamentInput[]
+  upsert?: Prisma.PredictionUpsertWithWhereUniqueWithoutTournamentInput | Prisma.PredictionUpsertWithWhereUniqueWithoutTournamentInput[]
+  createMany?: Prisma.PredictionCreateManyTournamentInputEnvelope
+  set?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  disconnect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  delete?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  connect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  update?: Prisma.PredictionUpdateWithWhereUniqueWithoutTournamentInput | Prisma.PredictionUpdateWithWhereUniqueWithoutTournamentInput[]
+  updateMany?: Prisma.PredictionUpdateManyWithWhereWithoutTournamentInput | Prisma.PredictionUpdateManyWithWhereWithoutTournamentInput[]
+  deleteMany?: Prisma.PredictionScalarWhereInput | Prisma.PredictionScalarWhereInput[]
+}
+
+export type PredictionUncheckedUpdateManyWithoutTournamentNestedInput = {
+  create?: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput> | Prisma.PredictionCreateWithoutTournamentInput[] | Prisma.PredictionUncheckedCreateWithoutTournamentInput[]
+  connectOrCreate?: Prisma.PredictionCreateOrConnectWithoutTournamentInput | Prisma.PredictionCreateOrConnectWithoutTournamentInput[]
+  upsert?: Prisma.PredictionUpsertWithWhereUniqueWithoutTournamentInput | Prisma.PredictionUpsertWithWhereUniqueWithoutTournamentInput[]
+  createMany?: Prisma.PredictionCreateManyTournamentInputEnvelope
+  set?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  disconnect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  delete?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  connect?: Prisma.PredictionWhereUniqueInput | Prisma.PredictionWhereUniqueInput[]
+  update?: Prisma.PredictionUpdateWithWhereUniqueWithoutTournamentInput | Prisma.PredictionUpdateWithWhereUniqueWithoutTournamentInput[]
+  updateMany?: Prisma.PredictionUpdateManyWithWhereWithoutTournamentInput | Prisma.PredictionUpdateManyWithWhereWithoutTournamentInput[]
+  deleteMany?: Prisma.PredictionScalarWhereInput | Prisma.PredictionScalarWhereInput[]
+}
+
 export type PredictionCreateWithoutOptionsInput = {
   id?: string
   guildId: string
@@ -516,6 +592,7 @@ export type PredictionCreateWithoutOptionsInput = {
   createdAt?: Date | string
   votes?: Prisma.VoteCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultCreateNestedOneWithoutPredictionInput
+  tournament?: Prisma.TournamentCreateNestedOneWithoutPredictionsInput
 }
 
 export type PredictionUncheckedCreateWithoutOptionsInput = {
@@ -529,6 +606,7 @@ export type PredictionUncheckedCreateWithoutOptionsInput = {
   status?: $Enums.PredictionStatus
   createdBy: string
   createdAt?: Date | string
+  tournamentId?: string | null
   votes?: Prisma.VoteUncheckedCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultUncheckedCreateNestedOneWithoutPredictionInput
 }
@@ -562,6 +640,7 @@ export type PredictionUpdateWithoutOptionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   votes?: Prisma.VoteUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUpdateOneWithoutPredictionNestedInput
+  tournament?: Prisma.TournamentUpdateOneWithoutPredictionsNestedInput
 }
 
 export type PredictionUncheckedUpdateWithoutOptionsInput = {
@@ -575,6 +654,7 @@ export type PredictionUncheckedUpdateWithoutOptionsInput = {
   status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tournamentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   votes?: Prisma.VoteUncheckedUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUncheckedUpdateOneWithoutPredictionNestedInput
 }
@@ -592,6 +672,7 @@ export type PredictionCreateWithoutVotesInput = {
   createdAt?: Date | string
   options?: Prisma.PredictionOptionCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultCreateNestedOneWithoutPredictionInput
+  tournament?: Prisma.TournamentCreateNestedOneWithoutPredictionsInput
 }
 
 export type PredictionUncheckedCreateWithoutVotesInput = {
@@ -605,6 +686,7 @@ export type PredictionUncheckedCreateWithoutVotesInput = {
   status?: $Enums.PredictionStatus
   createdBy: string
   createdAt?: Date | string
+  tournamentId?: string | null
   options?: Prisma.PredictionOptionUncheckedCreateNestedManyWithoutPredictionInput
   result?: Prisma.PredictionResultUncheckedCreateNestedOneWithoutPredictionInput
 }
@@ -638,6 +720,7 @@ export type PredictionUpdateWithoutVotesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   options?: Prisma.PredictionOptionUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUpdateOneWithoutPredictionNestedInput
+  tournament?: Prisma.TournamentUpdateOneWithoutPredictionsNestedInput
 }
 
 export type PredictionUncheckedUpdateWithoutVotesInput = {
@@ -651,6 +734,7 @@ export type PredictionUncheckedUpdateWithoutVotesInput = {
   status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tournamentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   options?: Prisma.PredictionOptionUncheckedUpdateManyWithoutPredictionNestedInput
   result?: Prisma.PredictionResultUncheckedUpdateOneWithoutPredictionNestedInput
 }
@@ -668,6 +752,7 @@ export type PredictionCreateWithoutResultInput = {
   createdAt?: Date | string
   options?: Prisma.PredictionOptionCreateNestedManyWithoutPredictionInput
   votes?: Prisma.VoteCreateNestedManyWithoutPredictionInput
+  tournament?: Prisma.TournamentCreateNestedOneWithoutPredictionsInput
 }
 
 export type PredictionUncheckedCreateWithoutResultInput = {
@@ -681,6 +766,7 @@ export type PredictionUncheckedCreateWithoutResultInput = {
   status?: $Enums.PredictionStatus
   createdBy: string
   createdAt?: Date | string
+  tournamentId?: string | null
   options?: Prisma.PredictionOptionUncheckedCreateNestedManyWithoutPredictionInput
   votes?: Prisma.VoteUncheckedCreateNestedManyWithoutPredictionInput
 }
@@ -714,6 +800,7 @@ export type PredictionUpdateWithoutResultInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   options?: Prisma.PredictionOptionUpdateManyWithoutPredictionNestedInput
   votes?: Prisma.VoteUpdateManyWithoutPredictionNestedInput
+  tournament?: Prisma.TournamentUpdateOneWithoutPredictionsNestedInput
 }
 
 export type PredictionUncheckedUpdateWithoutResultInput = {
@@ -727,8 +814,142 @@ export type PredictionUncheckedUpdateWithoutResultInput = {
   status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  tournamentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   options?: Prisma.PredictionOptionUncheckedUpdateManyWithoutPredictionNestedInput
   votes?: Prisma.VoteUncheckedUpdateManyWithoutPredictionNestedInput
+}
+
+export type PredictionCreateWithoutTournamentInput = {
+  id?: string
+  guildId: string
+  channelId: string
+  messageId?: string | null
+  title: string
+  game?: string | null
+  lockTime?: Date | string | null
+  status?: $Enums.PredictionStatus
+  createdBy: string
+  createdAt?: Date | string
+  options?: Prisma.PredictionOptionCreateNestedManyWithoutPredictionInput
+  votes?: Prisma.VoteCreateNestedManyWithoutPredictionInput
+  result?: Prisma.PredictionResultCreateNestedOneWithoutPredictionInput
+}
+
+export type PredictionUncheckedCreateWithoutTournamentInput = {
+  id?: string
+  guildId: string
+  channelId: string
+  messageId?: string | null
+  title: string
+  game?: string | null
+  lockTime?: Date | string | null
+  status?: $Enums.PredictionStatus
+  createdBy: string
+  createdAt?: Date | string
+  options?: Prisma.PredictionOptionUncheckedCreateNestedManyWithoutPredictionInput
+  votes?: Prisma.VoteUncheckedCreateNestedManyWithoutPredictionInput
+  result?: Prisma.PredictionResultUncheckedCreateNestedOneWithoutPredictionInput
+}
+
+export type PredictionCreateOrConnectWithoutTournamentInput = {
+  where: Prisma.PredictionWhereUniqueInput
+  create: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput>
+}
+
+export type PredictionCreateManyTournamentInputEnvelope = {
+  data: Prisma.PredictionCreateManyTournamentInput | Prisma.PredictionCreateManyTournamentInput[]
+  skipDuplicates?: boolean
+}
+
+export type PredictionUpsertWithWhereUniqueWithoutTournamentInput = {
+  where: Prisma.PredictionWhereUniqueInput
+  update: Prisma.XOR<Prisma.PredictionUpdateWithoutTournamentInput, Prisma.PredictionUncheckedUpdateWithoutTournamentInput>
+  create: Prisma.XOR<Prisma.PredictionCreateWithoutTournamentInput, Prisma.PredictionUncheckedCreateWithoutTournamentInput>
+}
+
+export type PredictionUpdateWithWhereUniqueWithoutTournamentInput = {
+  where: Prisma.PredictionWhereUniqueInput
+  data: Prisma.XOR<Prisma.PredictionUpdateWithoutTournamentInput, Prisma.PredictionUncheckedUpdateWithoutTournamentInput>
+}
+
+export type PredictionUpdateManyWithWhereWithoutTournamentInput = {
+  where: Prisma.PredictionScalarWhereInput
+  data: Prisma.XOR<Prisma.PredictionUpdateManyMutationInput, Prisma.PredictionUncheckedUpdateManyWithoutTournamentInput>
+}
+
+export type PredictionScalarWhereInput = {
+  AND?: Prisma.PredictionScalarWhereInput | Prisma.PredictionScalarWhereInput[]
+  OR?: Prisma.PredictionScalarWhereInput[]
+  NOT?: Prisma.PredictionScalarWhereInput | Prisma.PredictionScalarWhereInput[]
+  id?: Prisma.StringFilter<"Prediction"> | string
+  guildId?: Prisma.StringFilter<"Prediction"> | string
+  channelId?: Prisma.StringFilter<"Prediction"> | string
+  messageId?: Prisma.StringNullableFilter<"Prediction"> | string | null
+  title?: Prisma.StringFilter<"Prediction"> | string
+  game?: Prisma.StringNullableFilter<"Prediction"> | string | null
+  lockTime?: Prisma.DateTimeNullableFilter<"Prediction"> | Date | string | null
+  status?: Prisma.EnumPredictionStatusFilter<"Prediction"> | $Enums.PredictionStatus
+  createdBy?: Prisma.StringFilter<"Prediction"> | string
+  createdAt?: Prisma.DateTimeFilter<"Prediction"> | Date | string
+  tournamentId?: Prisma.StringNullableFilter<"Prediction"> | string | null
+}
+
+export type PredictionCreateManyTournamentInput = {
+  id?: string
+  guildId: string
+  channelId: string
+  messageId?: string | null
+  title: string
+  game?: string | null
+  lockTime?: Date | string | null
+  status?: $Enums.PredictionStatus
+  createdBy: string
+  createdAt?: Date | string
+}
+
+export type PredictionUpdateWithoutTournamentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  guildId?: Prisma.StringFieldUpdateOperationsInput | string
+  channelId?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  game?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lockTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  options?: Prisma.PredictionOptionUpdateManyWithoutPredictionNestedInput
+  votes?: Prisma.VoteUpdateManyWithoutPredictionNestedInput
+  result?: Prisma.PredictionResultUpdateOneWithoutPredictionNestedInput
+}
+
+export type PredictionUncheckedUpdateWithoutTournamentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  guildId?: Prisma.StringFieldUpdateOperationsInput | string
+  channelId?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  game?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lockTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  options?: Prisma.PredictionOptionUncheckedUpdateManyWithoutPredictionNestedInput
+  votes?: Prisma.VoteUncheckedUpdateManyWithoutPredictionNestedInput
+  result?: Prisma.PredictionResultUncheckedUpdateOneWithoutPredictionNestedInput
+}
+
+export type PredictionUncheckedUpdateManyWithoutTournamentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  guildId?: Prisma.StringFieldUpdateOperationsInput | string
+  channelId?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  game?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lockTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumPredictionStatusFieldUpdateOperationsInput | $Enums.PredictionStatus
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -782,9 +1003,11 @@ export type PredictionSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   status?: boolean
   createdBy?: boolean
   createdAt?: boolean
+  tournamentId?: boolean
   options?: boolean | Prisma.Prediction$optionsArgs<ExtArgs>
   votes?: boolean | Prisma.Prediction$votesArgs<ExtArgs>
   result?: boolean | Prisma.Prediction$resultArgs<ExtArgs>
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
   _count?: boolean | Prisma.PredictionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["prediction"]>
 
@@ -799,6 +1022,8 @@ export type PredictionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   createdBy?: boolean
   createdAt?: boolean
+  tournamentId?: boolean
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
 }, ExtArgs["result"]["prediction"]>
 
 export type PredictionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -812,6 +1037,8 @@ export type PredictionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   createdBy?: boolean
   createdAt?: boolean
+  tournamentId?: boolean
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
 }, ExtArgs["result"]["prediction"]>
 
 export type PredictionSelectScalar = {
@@ -825,17 +1052,23 @@ export type PredictionSelectScalar = {
   status?: boolean
   createdBy?: boolean
   createdAt?: boolean
+  tournamentId?: boolean
 }
 
-export type PredictionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "guildId" | "channelId" | "messageId" | "title" | "game" | "lockTime" | "status" | "createdBy" | "createdAt", ExtArgs["result"]["prediction"]>
+export type PredictionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "guildId" | "channelId" | "messageId" | "title" | "game" | "lockTime" | "status" | "createdBy" | "createdAt" | "tournamentId", ExtArgs["result"]["prediction"]>
 export type PredictionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   options?: boolean | Prisma.Prediction$optionsArgs<ExtArgs>
   votes?: boolean | Prisma.Prediction$votesArgs<ExtArgs>
   result?: boolean | Prisma.Prediction$resultArgs<ExtArgs>
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
   _count?: boolean | Prisma.PredictionCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type PredictionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type PredictionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type PredictionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
+}
+export type PredictionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  tournament?: boolean | Prisma.Prediction$tournamentArgs<ExtArgs>
+}
 
 export type $PredictionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Prediction"
@@ -843,6 +1076,7 @@ export type $PredictionPayload<ExtArgs extends runtime.Types.Extensions.Internal
     options: Prisma.$PredictionOptionPayload<ExtArgs>[]
     votes: Prisma.$VotePayload<ExtArgs>[]
     result: Prisma.$PredictionResultPayload<ExtArgs> | null
+    tournament: Prisma.$TournamentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -855,6 +1089,7 @@ export type $PredictionPayload<ExtArgs extends runtime.Types.Extensions.Internal
     status: $Enums.PredictionStatus
     createdBy: string
     createdAt: Date
+    tournamentId: string | null
   }, ExtArgs["result"]["prediction"]>
   composites: {}
 }
@@ -1252,6 +1487,7 @@ export interface Prisma__PredictionClient<T, Null = never, ExtArgs extends runti
   options<T extends Prisma.Prediction$optionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prediction$optionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PredictionOptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   votes<T extends Prisma.Prediction$votesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prediction$votesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   result<T extends Prisma.Prediction$resultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prediction$resultArgs<ExtArgs>>): Prisma.Prisma__PredictionResultClient<runtime.Types.Result.GetResult<Prisma.$PredictionResultPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  tournament<T extends Prisma.Prediction$tournamentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prediction$tournamentArgs<ExtArgs>>): Prisma.Prisma__TournamentClient<runtime.Types.Result.GetResult<Prisma.$TournamentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1291,6 +1527,7 @@ export interface PredictionFieldRefs {
   readonly status: Prisma.FieldRef<"Prediction", 'PredictionStatus'>
   readonly createdBy: Prisma.FieldRef<"Prediction", 'String'>
   readonly createdAt: Prisma.FieldRef<"Prediction", 'DateTime'>
+  readonly tournamentId: Prisma.FieldRef<"Prediction", 'String'>
 }
     
 
@@ -1540,6 +1777,10 @@ export type PredictionCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    */
   data: Prisma.PredictionCreateManyInput | Prisma.PredictionCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PredictionIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1610,6 +1851,10 @@ export type PredictionUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    * Limit how many Predictions to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PredictionIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1743,6 +1988,25 @@ export type Prediction$resultArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.PredictionResultInclude<ExtArgs> | null
   where?: Prisma.PredictionResultWhereInput
+}
+
+/**
+ * Prediction.tournament
+ */
+export type Prediction$tournamentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Tournament
+   */
+  select?: Prisma.TournamentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Tournament
+   */
+  omit?: Prisma.TournamentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TournamentInclude<ExtArgs> | null
+  where?: Prisma.TournamentWhereInput
 }
 
 /**

@@ -1,5 +1,6 @@
 import { prisma } from "#db/prisma.js";
 import type { ChatInputCommandInteraction } from "discord.js";
+import { getById as getTournamentById } from "../../../services/tournament.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
     // 64 = MessageFlags.Ephemeral
@@ -14,14 +15,34 @@ export async function predSeeVotes(i: ChatInputCommandInteraction) {
     }
 
     const predictionId = i.options.getString("id", false);
+    const tournamentIdRaw = i.options.getString("tournament", false);
+    const tournamentId = tournamentIdRaw ?? undefined;
     const guildId = i.guildId!;
     const userId = i.user.id;
+
+    // Verificar que el torneo existe si se especifica
+    let tournamentName = "";
+    if (tournamentId) {
+        try {
+            const tournament = await getTournamentById(tournamentId, guildId);
+            if (!tournament) {
+                return respond(i, "❌ Torneo no encontrado en este servidor.");
+            }
+            tournamentName = ` - ${tournament.name}`;
+        } catch (e) {
+            return respond(i, "❌ Error al verificar el torneo.");
+        }
+    }
 
     const votes = await prisma.vote.findMany({
         where: {
             userId,
             ...(predictionId ? { predictionId } : {}),
-            prediction: { guildId, status: { in: ["OPEN", "CLOSED"] } },
+            prediction: { 
+                guildId, 
+                status: { in: ["OPEN", "CLOSED"] },
+                ...(tournamentId ? { tournamentId } : {}),
+            },
         },
         orderBy: { createdAt: "desc" },
         include: {
@@ -33,6 +54,7 @@ export async function predSeeVotes(i: ChatInputCommandInteraction) {
                     lockTime: true,
                     channelId: true,
                     messageId: true,
+                    tournamentId: true,
                 },
             },
             option: {
@@ -69,8 +91,8 @@ export async function predSeeVotes(i: ChatInputCommandInteraction) {
     };
 
     const header = predictionId
-        ? "🗳️ Tu voto (predicción no resuelta)"
-        : "🗳️ Tus votos en predicciones no resueltas";
+        ? `🗳️ Tu voto (predicción no resuelta)${tournamentName}`
+        : `🗳️ Tus votos en predicciones no resueltas${tournamentName}`;
 
     // Discord: límite ~2000 chars en content. Ajustamos el número de items mostrados si hace falta.
     let maxItems = predictionId ? 1 : 15;

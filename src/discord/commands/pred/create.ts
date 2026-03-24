@@ -1,6 +1,8 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import { env } from "#config/env.js";
 import { prisma } from "../../../db/prisma.js";
+import { createPrediction, getPredictionById } from "../../../services/prediction.js";
+import { getById as getTournamentById } from "../../../services/tournament.js";
 import { buildPredictionMessage } from "../../views/predictionEmbed.js";
 import { isAdminOrMod } from "../permissions.js";
 import { log } from "../../../log.js";
@@ -61,6 +63,7 @@ export async function predCreate(i: ChatInputCommandInteraction) {
 
   const title = i.options.getString("title", true);
   const game = i.options.getString("game", false);
+  const tournamentId = i.options.getString("tournament", false);
 
   const optionsCsv = i.options.getString("options", true); // "G2,FNC"
   const options = optionsCsv
@@ -99,20 +102,22 @@ export async function predCreate(i: ChatInputCommandInteraction) {
   // 1) Crea en DB (sin messageId aún)
   let pred: any;
   try {
-    pred = await prisma.prediction.create({
-      data: {
-        guildId: i.guildId!,
-        channelId: i.channelId!,
-        title,
-        game,
-        lockTime,
-        createdBy: i.user.id,
-        options: { create: options.map((label) => ({ label })) },
-      },
-      include: { options: true },
+    pred = await createPrediction({
+      guildId: i.guildId!,
+      channelId: i.channelId!,
+      title,
+      game,
+      lockTime,
+      createdBy: i.user.id,
+      tournamentId,
+      options,
     });
   } catch (e) {
     log.error("pred/create: fallo creando en DB", e);
+    const msg = e instanceof Error ? e.message : "Error desconocido";
+    if (msg.includes("Tournament is not active")) {
+      return respond(i, "❌ El torneo no está activo o no existe.");
+    }
     return respond(i, "❌ No se pudo crear la predicción en la base de datos.");
   }
 
@@ -164,8 +169,22 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     ? `<t:${Math.floor(new Date(pred.lockTime).getTime() / 1000)}:F>`
     : "(sin cierre automático)";
 
+  // Obtener información del torneo si se especificó
+  let tournamentInfo = "";
+  if (pred.tournamentId) {
+    try {
+      const tournament = await getTournamentById(pred.tournamentId, i.guildId!);
+      if (tournament) {
+        tournamentInfo = `\n🏆 Torneo: ${tournament.name}`;
+      }
+    } catch (e) {
+      // Ignorar error, continuar sin info de torneo
+    }
+  }
+
   const idsLines = [
     `✅ Predicción creada.`,
+    tournamentInfo,
     "",
     `🆔 Prediction ID: \`${pred.id}\``,
     `Cierre: ${lockInfo}`,

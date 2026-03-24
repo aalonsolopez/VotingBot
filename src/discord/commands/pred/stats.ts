@@ -1,5 +1,7 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import { EmbedBuilder } from "discord.js";
+import { getPredictionById } from "../../../services/prediction.js";
+import { getById as getTournamentById } from "../../../services/tournament.js";
 import { prisma } from "#db/prisma.js";
 import { log } from "#src/log.js";
 
@@ -18,13 +20,23 @@ export async function predStats(i: ChatInputCommandInteraction) {
 
   const predictionId = i.options.getString("id", true);
 
-  const pred = await prisma.prediction.findUnique({
-    where: { id: predictionId },
-    include: { options: true },
-  });
+  const pred = await getPredictionById(predictionId);
 
   if (!pred) {
     return respond(i, "❌ No existe esa predicción.");
+  }
+
+  // Obtener información del torneo si existe
+  let tournamentName = "";
+  if (pred.tournamentId) {
+    try {
+      const tournament = await getTournamentById(pred.tournamentId, i.guildId!);
+      if (tournament) {
+        tournamentName = ` - ${tournament.name}`;
+      }
+    } catch (e) {
+      // Ignorar error, continuar sin info de torneo
+    }
   }
 
   const grouped = await prisma.vote.groupBy({
@@ -41,7 +53,7 @@ export async function predStats(i: ChatInputCommandInteraction) {
   const statusEmoji = pred.status === "OPEN" ? "🟢" : pred.status === "CLOSED" ? "🟡" : "🔴";
 
   const embed = new EmbedBuilder()
-    .setTitle(`📊 Stats — ${pred.title}`)
+    .setTitle(`📊 Stats — ${pred.title}${tournamentName}`)
     .setDescription(
       [
         `${statusEmoji} **Estado:** ${pred.status}`,

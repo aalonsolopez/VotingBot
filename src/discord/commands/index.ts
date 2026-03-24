@@ -5,6 +5,8 @@ import { predResolve } from "./pred/resolve.js";
 import { predUndo } from "./pred/undo.js";
 import { leaderboard } from "./pred/leaderboard.js";
 import { predSeeVotes } from "./pred/my_votes.js";
+import { tournamentCreate } from "./tournament/create.js";
+import { tournamentDeactivate } from "./tournament/deactivate.js";
 import { isAdminOrMod } from "./permissions.js";
 
 
@@ -17,12 +19,25 @@ async function respond(i: ChatInputCommandInteraction, content: string) {
 
 
 export async function handleCommand(i: ChatInputCommandInteraction) {
-  if (i.commandName !== "pred") return;
-
   if (!i.inGuild()) {
     return respond(i, "Solo en servidores.");
   }
-  
+
+  // Manejar comando tournament
+  if (i.commandName === "tournament") {
+    if (!isAdminOrMod(i)) {
+      return respond(i, "❌ Solo admins o moderadores pueden usar estos comandos.");
+    }
+    
+    const sub = i.options.getSubcommand();
+    if (sub === "create") return tournamentCreate(i);
+    if (sub === "deactivate") return tournamentDeactivate(i);
+    return respond(i, "Subcomando de torneo no soportado.");
+  }
+
+  // Manejar comando pred
+  if (i.commandName !== "pred") return;
+
   const sub = i.options.getSubcommand();
 
   // Disponible para cualquier usuario (incluidos admins/mods)

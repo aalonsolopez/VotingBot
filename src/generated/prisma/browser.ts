@@ -38,10 +38,15 @@ export type Vote = Prisma.VoteModel
  */
 export type PredictionResult = Prisma.PredictionResultModel
 /**
- * Model UserPoints
+ * Model Tournament
  * 
  */
-export type UserPoints = Prisma.UserPointsModel
+export type Tournament = Prisma.TournamentModel
+/**
+ * Model TournamentPoints
+ * 
+ */
+export type TournamentPoints = Prisma.TournamentPointsModel
 /**
  * Model PointsLedger
  * 

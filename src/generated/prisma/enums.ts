@@ -16,3 +16,11 @@ export const PredictionStatus = {
 } as const
 
 export type PredictionStatus = (typeof PredictionStatus)[keyof typeof PredictionStatus]
+
+
+export const TournamentStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE'
+} as const
+
+export type TournamentStatus = (typeof TournamentStatus)[keyof typeof TournamentStatus]

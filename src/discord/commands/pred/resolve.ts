@@ -3,6 +3,9 @@ import { EmbedBuilder } from "discord.js";
 import { prisma } from "#db/prisma.js";
 import { env } from "#config/env.js";
 import { isAdminOrMod } from "../permissions.js";
+import { resolvePrediction } from "../../../services/prediction.js";
+import { getById as getTournamentById } from "../../../services/tournament.js";
+import { log } from "../../../log.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
@@ -24,7 +27,7 @@ export async function predResolve(i: ChatInputCommandInteraction) {
   const predictionId = i.options.getString("id", true);
   const winnerOptionId = i.options.getString("winner", true);
 
-  // Validar que existe y que la opción ganadora pertenece a la predicción
+  // Obtener la predicción usando el servicio
   const pred = await prisma.prediction.findUnique({
     where: { id: predictionId },
     include: { options: true },
@@ -42,87 +45,33 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     return respond(i, "⚠️ Esa predicción ya estaba resuelta.");
   }
 
-  // Regla de puntos (MVP): +1 por acierto, 0 por fallo.
-  const result = await prisma
-    .$transaction(async (tx) => {
-      // Evitar doble resolución a nivel transaccional
-      const existingResult = await tx.predictionResult.findUnique({
-        where: { predictionId: pred.id },
-      });
-      if (existingResult) {
-        throw new Error("ALREADY_RESOLVED");
-      }
-
-      const votes = await tx.vote.findMany({
-        where: { predictionId: pred.id },
-        select: { userId: true, optionId: true },
-      });
-
-      const totalVotes = votes.length;
-      const correctUserIds = votes.filter((v) => v.optionId === winnerOptionId).map((v) => v.userId);
-
-      // Marca resuelta + guarda resultado
-      await tx.prediction.update({
-        where: { id: pred.id },
-        data: { status: "RESOLVED" },
-      });
-
-      await tx.predictionResult.create({
-        data: {
-          predictionId: pred.id,
-          winnerOptionId,
-          resolvedBy: i.user.id,
-        },
-      });
-
-      // Ledger + puntos
-      if (correctUserIds.length > 0) {
-        // Incrementa 1 a los existentes
-        await tx.userPoints.updateMany({
-          where: { guildId: pred.guildId, userId: { in: correctUserIds } },
-          data: { total: { increment: 1 } },
-        });
-
-        // Crea los que no existían
-        // (Hacemos prefetch para evitar createMany masivo innecesario; igualmente usamos skipDuplicates)
-        const existing = await tx.userPoints.findMany({
-          where: { guildId: pred.guildId, userId: { in: correctUserIds } },
-          select: { userId: true },
-        });
-        const existingSet = new Set(existing.map((e) => e.userId));
-        const toCreate = correctUserIds.filter((uid) => !existingSet.has(uid));
-
-        if (toCreate.length > 0) {
-          await tx.userPoints.createMany({
-            data: toCreate.map((uid) => ({ guildId: pred.guildId, userId: uid, total: 1 })),
-            skipDuplicates: true,
-          });
-        }
-
-        // Ledger (1 entrada por usuario correcto)
-        await tx.pointsLedger.createMany({
-          data: correctUserIds.map((uid) => ({
-            guildId: pred.guildId,
-            userId: uid,
-            predictionId: pred.id,
-            delta: 1,
-            reason: `Correct prediction (${winnerOpt.label})`,
-          })),
-        });
-      }
-
-      return {
-        totalVotes,
-        correctCount: correctUserIds.length,
-      };
-    })
-    .catch((e) => {
-      if (e instanceof Error && e.message === "ALREADY_RESOLVED") return null;
-      throw e;
+  // Usar el servicio de predicciones para resolver
+  let result;
+  try {
+    result = await resolvePrediction({
+      predictionId,
+      winnerOptionId,
+      resolvedBy: i.user.id,
     });
+  } catch (e) {
+    if (e instanceof Error && e.message === "Already resolved") {
+      return respond(i, "⚠️ Esa predicción ya estaba resuelta (resultado existente).");
+    }
+    log.error("pred/resolve: error resolviendo predicción", e);
+    return respond(i, "❌ Error al resolver la predicción.");
+  }
 
-  if (result === null) {
-    return respond(i, "⚠️ Esa predicción ya estaba resuelta (resultado existente).");
+  // Obtener información del torneo si existe
+  let tournamentInfo = "";
+  if (pred.tournamentId) {
+    try {
+      const tournament = await getTournamentById(pred.tournamentId, pred.guildId);
+      if (tournament) {
+        tournamentInfo = `\n🏆 Torneo: ${tournament.name}`;
+      }
+    } catch (e) {
+      // Ignorar error, continuar sin info de torneo
+    }
   }
 
   // Respuesta efímera al admin/mod
@@ -131,9 +80,10 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     .setDescription(
       [
         `**${pred.title}**`,
+        tournamentInfo,
         `🏁 Ganador: **${winnerOpt.label}**`,
         `🗳️ Votos: **${result.totalVotes}**`,
-        `✅ Aciertos: **${result.correctCount}** (+1 punto)`,
+        `✅ Aciertos: **${result.correctCount}** (+1 punto${pred.tournamentId ? " en torneo" : ""})`,
       ].join("\n")
     )
     .setColor("#57F287");
@@ -159,7 +109,7 @@ export async function predResolve(i: ChatInputCommandInteraction) {
     const publicEmbed = new EmbedBuilder()
       .setTitle("✅ Predicción resuelta")
       .setDescription(
-        [ `**${pred.title}**`, `🏁 Ganador: **${winnerOpt.label}**`, jumpLink ? `🔗 Mensaje: ${jumpLink}` : null ]
+        [ `**${pred.title}**`, tournamentInfo, `🏁 Ganador: **${winnerOpt.label}**`, jumpLink ? `🔗 Mensaje: ${jumpLink}` : null ]
           .filter(Boolean)
           .join("\n")
       )

@@ -13,6 +13,11 @@ enum PredictionStatus {
   RESOLVED
 }
 
+enum TournamentStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Prediction {
   id         String           @id @default(cuid())
   guildId    String
@@ -26,9 +31,11 @@ model Prediction {
   createdAt  DateTime         @default(now())
   options    PredictionOption[]
   votes      Vote[]
-  result     PredictionResult?
+   result     PredictionResult?
+   tournament Tournament?       @relation(fields: [tournamentId], references: [id])
+   tournamentId String?
 
-  @@index([guildId, status])
+   @@index([guildId, status])
 }
 
 model PredictionOption {
@@ -62,22 +69,46 @@ model PredictionResult {
   prediction      Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 }
 
-model UserPoints {
-  id       String  @id @default(cuid())
-  guildId  String
-  userId   String
-  total    Int     @default(0)
+model Tournament {
+  id        String   @id @default(cuid())
+  name      String
+  guildId   String
+  status    TournamentStatus @default(ACTIVE)
+  startDate DateTime?
+  endDate   DateTime?
+  creatorId String
+  createdAt DateTime @default(now())
+  predictions Prediction[]
+  tournamentPoints TournamentPoints[]
+  pointsLedger PointsLedger[]
 
-  @@unique([guildId, userId])
-  @@index([guildId, total])
+  @@index([guildId, status])
+}
+
+model TournamentPoints {
+  id          String   @id @default(cuid())
+  tournamentId String
+  userId      String
+  total       Int      @default(0)
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, total])
 }
 
 model PointsLedger {
   id           String   @id @default(cuid())
   guildId      String
+  tournamentId String
   userId       String
   predictionId String
   delta        Int
   reason       String
   createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@index([tournamentId])
+  @@index([predictionId])
 }

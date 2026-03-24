@@ -38,6 +38,7 @@ export async function voteButton(i: ButtonInteraction): Promise<boolean> {
       channelId: true,
       messageId: true,
       title: true,
+      tournamentId: true,
     },
   });
 

@@ -3,6 +3,8 @@ import { EmbedBuilder } from "discord.js";
 import { prisma } from "#db/prisma.js";
 import { isAdminOrMod } from "../permissions.js";
 import { log } from "../../../log.js";
+import { rollbackPointsForPrediction } from "../../../services/tournamentPoints.js";
+import { getById as getTournamentById } from "../../../services/tournament.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string) {
   // 64 = MessageFlags.Ephemeral
@@ -27,7 +29,7 @@ export async function predUndo(i: ChatInputCommandInteraction) {
   try {
     const pred = await prisma.prediction.findUnique({
       where: { id: predictionId },
-      select: { id: true, title: true, guildId: true, status: true },
+      select: { id: true, title: true, guildId: true, status: true, tournamentId: true },
     });
 
     if (!pred) return respond(i, "❌ No existe esa predicción.");
@@ -37,54 +39,33 @@ export async function predUndo(i: ChatInputCommandInteraction) {
       return respond(i, "⚠️ Solo puedes deshacer predicciones en estado RESOLVED.");
     }
 
-    const { affectedUsers, totalDeltaAbs } = await prisma.$transaction(async (tx) => {
-      const grouped = await tx.pointsLedger.groupBy({
-        by: ["userId"],
-        where: { guildId, predictionId },
-        _sum: { delta: true },
-      });
-
-      const affectedUsers = grouped.map((g) => g.userId);
-
-      // Revertir totales según el ledger (no asumimos +1 fijo)
-      for (const g of grouped) {
-        const sumDelta = g._sum.delta ?? 0;
-        if (sumDelta === 0) continue;
-
-        if (sumDelta > 0) {
-          await tx.userPoints.updateMany({
-            where: { guildId, userId: g.userId },
-            data: { total: { decrement: sumDelta } },
-          });
-        } else {
-          await tx.userPoints.updateMany({
-            where: { guildId, userId: g.userId },
-            data: { total: { increment: Math.abs(sumDelta) } },
-          });
+    // Obtener información del torneo si existe
+    let tournamentInfo = "";
+    if (pred.tournamentId) {
+      try {
+        const tournament = await getTournamentById(pred.tournamentId, guildId);
+        if (tournament) {
+          tournamentInfo = `\n🏆 Torneo: ${tournament.name}`;
         }
+      } catch (e) {
+        // Ignorar error, continuar sin info de torneo
       }
+    }
 
-      // Evita negativos en usuarios afectados (best-effort)
-      if (affectedUsers.length > 0) {
-        await tx.userPoints.updateMany({
-          where: { guildId, userId: { in: affectedUsers }, total: { lt: 0 } },
-          data: { total: 0 },
-        });
-      }
-
+    // Revertir puntos usando el servicio de tournamentPoints si hay torneo
+    if (pred.tournamentId) {
+      await rollbackPointsForPrediction(predictionId, pred.tournamentId);
+    } else {
+      // Para predicciones sin torneo, no hay puntos que revertir (compatibilidad)
       // Borra ledger y resultado
-      await tx.pointsLedger.deleteMany({ where: { guildId, predictionId } });
-      await tx.predictionResult.deleteMany({ where: { predictionId } });
+      await prisma.pointsLedger.deleteMany({ where: { guildId, predictionId } });
+      await prisma.predictionResult.deleteMany({ where: { predictionId } });
+    }
 
-      // Vuelve a CLOSED (así puedes volver a resolver con el ganador correcto)
-      await tx.prediction.update({
-        where: { id: predictionId },
-        data: { status: "CLOSED" },
-      });
-
-      const totalDeltaAbs = grouped.reduce((acc, g) => acc + Math.abs(g._sum.delta ?? 0), 0);
-
-      return { affectedUsers, totalDeltaAbs };
+    // Vuelve a CLOSED (así puedes volver a resolver con el ganador correcto)
+    await prisma.prediction.update({
+      where: { id: predictionId },
+      data: { status: "CLOSED" },
     });
 
     const embed = new EmbedBuilder()
@@ -92,11 +73,12 @@ export async function predUndo(i: ChatInputCommandInteraction) {
       .setDescription(
         [
           `**${pred.title}**`,
+          tournamentInfo,
           `🆔 Prediction ID: \`${pred.id}\``,
           `✅ Estado actualizado a **CLOSED**`,
-          affectedUsers.length > 0
-            ? `👥 Usuarios afectados: **${affectedUsers.length}** (puntos revertidos: **${totalDeltaAbs}**)`
-            : "👥 No había puntos a revertir (nadie acertó o no se registró ledger).",
+          pred.tournamentId
+            ? "👥 Puntos de torneo revertidos correctamente."
+            : "👥 No hay puntos de torneo para revertir (predicción sin torneo).",
           "",
           "Ahora puedes volver a ejecutar `/pred resolve` con el ganador correcto.",
         ].join("\n")

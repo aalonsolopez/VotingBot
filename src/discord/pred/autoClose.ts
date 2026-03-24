@@ -11,6 +11,7 @@ export async function sendAutoCloseMessage(
     messageId?: string | null;
     title: string;
     lockTime?: Date | null;
+    tournamentId?: string | null;
   }
 ): Promise<void> {
   const announcementsChannelId = env.ANNOUNCEMENTS_CHANNEL_ID ?? "1400445241533927424";
@@ -66,12 +67,31 @@ export async function closeExpiredPredictions(client: Client): Promise<number> {
   const now = new Date();
 
   // Traemos candidatas (pequeño lote) para poder editar mensajes en Discord.
+  // Incluimos predicciones con lockTime pasado O predicciones de torneos inactivos
   const candidates = await prisma.prediction.findMany({
     where: {
       status: "OPEN",
-      lockTime: { not: null, lte: now },
+      OR: [
+        { lockTime: { not: null, lte: now } },
+        { tournament: { status: "INACTIVE" } },
+      ],
     },
-    select: { id: true, guildId: true, channelId: true, messageId: true, title: true, lockTime: true },
+    select: { 
+      id: true, 
+      guildId: true, 
+      channelId: true, 
+      messageId: true, 
+      title: true, 
+      lockTime: true,
+      tournamentId: true,
+      tournament: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+        },
+      },
+    },
     take: 50,
   });
 
@@ -96,6 +116,7 @@ export async function closeExpiredPredictions(client: Client): Promise<number> {
       messageId: p.messageId,
       title: p.title,
       lockTime: p.lockTime,
+      tournamentId: p.tournamentId,
     });
   }
 
