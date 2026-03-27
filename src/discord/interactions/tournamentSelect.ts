@@ -26,12 +26,12 @@ export async function handleTournamentSelect(i: StringSelectMenuInteraction): Pr
     default:
       // Comando no reconocido
       if (tournamentId === null) {
-        await i.update({
+        await i.editReply({
           content: "✅ Seleccionaste: Predicciones sin torneo (General)",
           components: [],
         });
       } else {
-        await i.update({
+        await i.editReply({
           content: `✅ Torneo seleccionado: **${tournamentId}**\nUsa este ID en comandos de predicción.`,
           components: [],
         });
@@ -49,7 +49,7 @@ async function handlePredCreateSelection(
   // Recuperar datos guardados del comando
   const commandData = getCommandData(guildId, userId, "pred-create");
   if (!commandData) {
-    await i.update({
+    await i.editReply({
       content: "❌ No se encontraron datos de la predicción. Por favor, ejecuta el comando `/pred create` de nuevo.",
       components: [],
     });
@@ -61,7 +61,7 @@ async function handlePredCreateSelection(
   // Validar que los datos siguen siendo válidos (lockTime no expiró)
   const lockTime = new Date(params.lockAtRaw);
   if (isNaN(lockTime.getTime()) || lockTime.getTime() <= Date.now()) {
-    await i.update({
+    await i.editReply({
       content: "❌ La fecha de cierre ya no es válida. Por favor, ejecuta el comando `/pred create` de nuevo.",
       components: [],
     });
@@ -74,7 +74,7 @@ async function handlePredCreateSelection(
     try {
       const tournament = await getTournamentById(tournamentId, guildId);
       if (!tournament) {
-        await i.update({
+        await i.editReply({
           content: "❌ El torneo seleccionado no existe en este servidor.",
           components: [],
         });
@@ -82,7 +82,7 @@ async function handlePredCreateSelection(
         return true;
       }
       if (tournament.status !== "ACTIVE") {
-        await i.update({
+        await i.editReply({
           content: "❌ El torneo seleccionado no está activo.",
           components: [],
         });
@@ -91,7 +91,7 @@ async function handlePredCreateSelection(
       }
     } catch (error) {
       log.error("tournamentSelect: error verificando torneo", error);
-      await i.update({
+      await i.editReply({
         content: "❌ Error al verificar el torneo seleccionado.",
         components: [],
       });
@@ -130,7 +130,7 @@ async function handlePredCreateSelection(
     // Enviar al canal original
     const channel = await i.client.channels.fetch(params.channelId);
     if (!channel || !channel.isTextBased() || !("send" in channel)) {
-      await i.update({
+      await i.editReply({
         content: "❌ No se pudo enviar la predicción al canal.",
         components: [],
       });
@@ -173,7 +173,7 @@ async function handlePredCreateSelection(
       ...pred.options.map((o: any) => `- ${o.label}: \`${o.id}\``),
     ].join("\n");
     
-    await i.update({
+    await i.editReply({
       content,
       components: [],
     });
@@ -206,7 +206,7 @@ async function handlePredCreateSelection(
     
   } catch (error) {
     log.error("tournamentSelect: error creando predicción", error);
-    await i.update({
+    await i.editReply({
       content: "❌ Error al crear la predicción. Por favor, intenta de nuevo.",
       components: [],
     });
@@ -224,7 +224,7 @@ async function handlePredLeaderboardSelection(
   // Recuperar datos guardados del comando
   const commandData = getCommandData(guildId, userId, "pred-leaderboard");
   if (!commandData) {
-    await i.update({
+    await i.editReply({
       content: "❌ No se encontraron datos del leaderboard. Por favor, ejecuta el comando `/pred leaderboard` de nuevo.",
       components: [],
     });
@@ -241,7 +241,7 @@ async function handlePredLeaderboardSelection(
     try {
       const tournament = await getTournamentById(tournamentId, guildId);
       if (!tournament) {
-        await i.update({
+        await i.editReply({
           content: "❌ El torneo seleccionado no existe en este servidor.",
           components: [],
         });
@@ -251,7 +251,7 @@ async function handlePredLeaderboardSelection(
       tournamentName = ` - ${tournament.name}`;
     } catch (error) {
       log.error("tournamentSelect: error verificando torneo", error);
-      await i.update({
+      await i.editReply({
         content: "❌ Error al verificar el torneo seleccionado.",
         components: [],
       });
@@ -304,7 +304,7 @@ async function handlePredLeaderboardSelection(
       }
     }
     
-    await i.update({
+    await i.editReply({
       content,
       components: [],
     });
@@ -315,7 +315,7 @@ async function handlePredLeaderboardSelection(
     
   } catch (error) {
     log.error("tournamentSelect: error generando leaderboard", error);
-    await i.update({
+    await i.editReply({
       content: "❌ Error al generar el leaderboard. Por favor, intenta de nuevo.",
       components: [],
     });
