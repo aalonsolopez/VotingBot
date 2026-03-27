@@ -9,11 +9,15 @@ import { log } from "../../../log.js";
 import { createTournamentSelect } from "../../components/tournamentSelect.js";
 import { saveCommandData } from "../../tempData.js";
 
-async function respond(i: ChatInputCommandInteraction, content: string) {
+async function respond(i: ChatInputCommandInteraction, content: string | { content?: string; components?: any[] }) {
   // 64 = MessageFlags.Ephemeral
-  if (i.deferred) return i.editReply({ content });
-  if (i.replied) return i.followUp({ content, flags: 64 });
-  return i.reply({ content, flags: 64 });
+  const options = typeof content === 'string' 
+    ? { content, flags: 64 }
+    : { ...content, flags: 64 };
+    
+  if (i.deferred) return i.editReply(options);
+  if (i.replied) return i.followUp(options);
+  return i.reply(options);
 }
 
 function parseLockAt(raw: string): Date | null {
@@ -121,12 +125,10 @@ export async function predCreate(i: ChatInputCommandInteraction) {
     // Mostrar dropdown de selección de torneo
     try {
       const { row } = await createTournamentSelect(i.guildId!, null, "pred-create");
-      await i.reply({
+      return respond(i, {
         content: "Selecciona un torneo para la predicción (o selecciona 'Sin torneo' para predicción general):",
         components: [row],
-        ephemeral: true,
       });
-      return;
     } catch (error) {
       log.error("pred/create: error mostrando dropdown", error);
       return respond(i, "❌ Error al mostrar selección de torneo.");
