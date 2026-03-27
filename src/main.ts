@@ -41,6 +41,10 @@ client.on("interactionCreate", async (i) => {
         if (!i.deferred && !i.replied) {
           await i.deferUpdate();
         }
+      } else if (i.isStringSelectMenu()) {
+        if (!i.deferred && !i.replied) {
+          await i.deferUpdate();
+        }
       }
     } catch (e: any) {
       // 10062 => expirada / unknown interaction (muy típico en dev con watch/restarts)
@@ -71,6 +75,7 @@ client.on("interactionCreate", async (i) => {
     // Ahora es seguro procesar la interacción
     if (i.isChatInputCommand()) return await handleCommand(i);
     if (i.isButton()) return await handleInteraction(i);
+    if (i.isStringSelectMenu()) return await handleInteraction(i);
   } catch (e) {
     log.error(e);
 
@@ -85,6 +90,9 @@ client.on("interactionCreate", async (i) => {
       } else if (i.isButton()) {
         // Para botones normalmente usamos deferUpdate(). Tras eso, lo más seguro es followUp ephemeral.
         // (Actualizar el mensaje original se debería hacer dentro de handleInteraction vía i.message.edit(...))
+        if (!i.replied) await i.followUp({ content: msg, flags: 64 });
+      } else if (i.isStringSelectMenu()) {
+        // Para selects, deferUpdate() ya fue hecho, usar followUp
         if (!i.replied) await i.followUp({ content: msg, flags: 64 });
       } else if (i.isRepliable()) {
         // Fallback genérico para otros tipos repliables
