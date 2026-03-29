@@ -57,10 +57,12 @@ export async function predUndo(i: ChatInputCommandInteraction) {
       await rollbackPointsForPrediction(predictionId, pred.tournamentId);
     } else {
       // Para predicciones sin torneo, no hay puntos que revertir (compatibilidad)
-      // Borra ledger y resultado
+      // Borra ledger (solo para compatibilidad con predicciones antiguas sin torneo)
       await prisma.pointsLedger.deleteMany({ where: { guildId, predictionId } });
-      await prisma.predictionResult.deleteMany({ where: { predictionId } });
     }
+    
+    // Eliminar resultado de la predicción (PARA TODOS LOS CASOS)
+    await prisma.predictionResult.deleteMany({ where: { predictionId } });
 
     // Vuelve a CLOSED (así puedes volver a resolver con el ganador correcto)
     await prisma.prediction.update({
