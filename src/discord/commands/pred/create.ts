@@ -8,6 +8,7 @@ import { isAdminOrMod } from "../permissions.js";
 import { log } from "../../../log.js";
 import { createTournamentSelect } from "../../components/tournamentSelect.js";
 import { saveCommandData } from "../../tempData.js";
+import { parseDateInput } from "../../utils/dateInput.js";
 
 async function respond(i: ChatInputCommandInteraction, content: string | { content?: string; components?: any[] }) {
   // 64 = MessageFlags.Ephemeral
@@ -18,43 +19,6 @@ async function respond(i: ChatInputCommandInteraction, content: string | { conte
   if (i.deferred) return i.editReply(options);
   if (i.replied) return i.followUp(options);
   return i.reply(options);
-}
-
-function parseLockAt(raw: string): Date | null {
-  const s = raw.trim();
-  if (!s) return null;
-
-  // Formato: DD-MM-YYYY HH:MM (en hora local del servidor)
-  // Ej: 12-01-2026 20:00
-  const m = /^([0-3]\d)-([0-1]\d)-(\d{4})\s+([0-2]\d):([0-5]\d)$/.exec(s);
-  if (m) {
-    const day = Number(m[1]);
-    const month = Number(m[2]);
-    const year = Number(m[3]);
-    const hour = Number(m[4]);
-    const minute = Number(m[5]);
-
-    if (month < 1 || month > 12) return null;
-    if (hour > 23) return null;
-
-    const d = new Date(year, month - 1, day, hour, minute, 0, 0);
-    // Valida que no haya overflow (p.ej. 31-02-2026)
-    if (
-      d.getFullYear() !== year ||
-      d.getMonth() !== month - 1 ||
-      d.getDate() !== day ||
-      d.getHours() !== hour ||
-      d.getMinutes() !== minute
-    ) {
-      return null;
-    }
-    return d;
-  }
-
-  // ISO 8601 (con o sin zona)
-  const d = new Date(s);
-  if (!Number.isFinite(d.getTime())) return null;
-  return d;
 }
 
 export async function predCreate(i: ChatInputCommandInteraction) {
@@ -79,7 +43,7 @@ export async function predCreate(i: ChatInputCommandInteraction) {
 
   const lockAtRaw = i.options.getString("lock_at", true);
 
-  const lockTime = parseLockAt(lockAtRaw);
+  const lockTime = parseDateInput(lockAtRaw);
   if (!lockTime) {
     return respond(
       i,
@@ -124,7 +88,7 @@ export async function predCreate(i: ChatInputCommandInteraction) {
 
     // Mostrar dropdown de selección de torneo
     try {
-      const { row } = await createTournamentSelect(i.guildId!, null, "pred-create");
+      const { row } = await createTournamentSelect(i.guildId!, null, "pred-create", { includeNoneOption: true });
       return respond(i, {
         content: "Selecciona un torneo para la predicción (o selecciona 'Sin torneo' para predicción general):",
         components: [row],

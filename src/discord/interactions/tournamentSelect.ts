@@ -8,6 +8,7 @@ import { getPointsLeaderboard, getParticipationLeaderboard } from "../../service
 import { prisma } from "#db/prisma.js";
 import { log } from "#src/log.js";
 import { env } from "#config/env.js";
+import { parseDateInput } from "../utils/dateInput.js";
 
 export async function handleTournamentSelect(i: StringSelectMenuInteraction): Promise<boolean> {
   const parsed = parseTournamentSelectInteraction(i.customId, i.values);
@@ -59,8 +60,8 @@ async function handlePredCreateSelection(
   const { params } = commandData;
   
   // Validar que los datos siguen siendo válidos (lockTime no expiró)
-  const lockTime = new Date(params.lockAtRaw);
-  if (isNaN(lockTime.getTime()) || lockTime.getTime() <= Date.now()) {
+  const lockTime = parseDateInput(params.lockAtRaw);
+  if (!lockTime || lockTime.getTime() <= Date.now()) {
     await i.editReply({
       content: "❌ La fecha de cierre ya no es válida. Por favor, ejecuta el comando `/pred create` de nuevo.",
       components: [],

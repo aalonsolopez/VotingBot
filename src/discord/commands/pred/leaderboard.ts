@@ -56,11 +56,10 @@ export async function leaderboard(i: ChatInputCommandInteraction) {
 
     // Mostrar dropdown de selección de torneo
     try {
-      const { row } = await createTournamentSelect(guildId, null, "pred-leaderboard");
-      await i.reply({
+      const { row } = await createTournamentSelect(guildId, null, "pred-leaderboard", { includeNoneOption: true });
+      await respond(i, {
         content: "Selecciona un torneo para ver el leaderboard (o selecciona 'Sin torneo' para leaderboard global):",
         components: [row],
-        ephemeral: true,
       });
       return;
     } catch (error) {

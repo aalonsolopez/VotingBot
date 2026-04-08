@@ -9,19 +9,34 @@ export interface TournamentSelectOption {
   default?: boolean;
 }
 
+export interface CreateTournamentSelectOptions {
+  includeNoneOption?: boolean;
+}
+
 export async function createTournamentSelect(
   guildId: string,
   selectedTournamentId?: string | null,
-  command: string = "general"
+  command: string = "general",
+  optionsConfig: CreateTournamentSelectOptions = {}
 ): Promise<{ row: ActionRowBuilder<StringSelectMenuBuilder>; tournaments: Tournament[] }> {
   const tournaments = await getByGuild(guildId, { status: "ACTIVE" });
-  
-  const options: TournamentSelectOption[] = tournaments.map((tournament) => ({
+  const options: TournamentSelectOption[] = [];
+
+  if (optionsConfig.includeNoneOption) {
+    options.push({
+      label: "Sin torneo",
+      value: "none",
+      description: "Usa la clasificación global o una predicción general",
+      default: selectedTournamentId === null,
+    });
+  }
+
+  options.push(...tournaments.map((tournament) => ({
     label: tournament.name,
     value: tournament.id,
     description: `ID: ${tournament.id}`,
     default: tournament.id === selectedTournamentId,
-  }));
+  })));
 
   // Si no hay torneos activos, crear opción por defecto
   if (options.length === 0) {
